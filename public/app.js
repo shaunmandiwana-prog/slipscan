@@ -190,9 +190,17 @@
     });
 
     function handleImageFile(file) {
-        if (!file.type.startsWith('image/')) { alert('Please select a valid image file.'); return; }
+        // Accept image/* types AND files with no MIME (iPhone HEIC often has empty type)
+        const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|gif|bmp|webp|heic|heif|tiff?)$/i.test(file.name || '');
+        if (!isImage && file.type) { alert('Please select a valid image file.'); return; }
         capturedImage = file;
-        previewImg.src = URL.createObjectURL(file);
+        const url = URL.createObjectURL(file);
+        previewImg.onload = () => { URL.revokeObjectURL(url); };
+        previewImg.onerror = () => {
+            // If native preview fails (HEIC), still allow proceeding
+            console.warn('Preview failed, but image may still be processable.');
+        };
+        previewImg.src = url;
         imagePreview.style.display = 'block';
         uploadContent.style.display = 'none';
         cameraPreview.style.display = 'none';
@@ -242,6 +250,39 @@
     }
 
     // ========================
+    // Convert image to a canvas-based JPEG blob for maximum compatibility
+    // ========================
+    function convertImageToJpeg(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    // Limit max dimension to 2048 for faster OCR on mobile
+                    const maxDim = 2048;
+                    let w = img.naturalWidth;
+                    let h = img.naturalHeight;
+                    if (w > maxDim || h > maxDim) {
+                        const scale = maxDim / Math.max(w, h);
+                        w = Math.round(w * scale);
+                        h = Math.round(h * scale);
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob((blob) => {
+                        if (blob) resolve(blob);
+                        else reject(new Error('Failed to convert image'));
+                    }, 'image/jpeg', 0.9);
+                } catch (e) { reject(e); }
+            };
+            img.onerror = () => reject(new Error('Could not load image. Try a different photo.'));
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    // ========================
     // OCR with Tesseract.js
     // ========================
     async function runOCR() {
@@ -249,47 +290,84 @@
         extractedData.style.display = 'none';
         $('#step4Actions').style.display = 'none';
         ocrProgressFill.style.width = '0%';
-        ocrStatus.textContent = 'Initializing OCR engine...';
+        ocrStatus.textContent = 'Preparing image...';
         $('#step4Title').textContent = 'Scanning Receipt...';
         $('#step4Desc').textContent = 'Extracting data from your slip';
         $('#scanIcon').classList.add('scanning');
 
+        let imageBlob;
         try {
-            const imageUrl = URL.createObjectURL(capturedImage);
-            const worker = await Tesseract.createWorker('eng', 1, {
-                logger: (m) => {
-                    if (m.status === 'recognizing text') {
-                        const pct = Math.round(m.progress * 100);
-                        ocrProgressFill.style.width = pct + '%';
-                        ocrStatus.textContent = `Recognizing text... ${pct}%`;
-                    } else if (m.status === 'loading language traineddata') {
-                        ocrProgressFill.style.width = '15%';
-                        ocrStatus.textContent = 'Loading language data...';
-                    } else if (m.status === 'initializing api') {
-                        ocrProgressFill.style.width = '30%';
-                        ocrStatus.textContent = 'Initializing OCR engine...';
-                    }
-                }
-            });
+            // Convert to JPEG for max browser/OCR compatibility
+            imageBlob = await convertImageToJpeg(capturedImage);
+            ocrStatus.textContent = 'Initializing OCR engine...';
+            ocrProgressFill.style.width = '5%';
+        } catch (convErr) {
+            console.error('Image conversion error:', convErr);
+            ocrStatus.textContent = 'Could not read this image. Try a JPG or PNG photo.';
+            ocrProgressFill.style.width = '100%';
+            ocrProgressFill.style.background = 'var(--danger, #e74c3c)';
+            $('#step4Actions').style.display = '';
+            $('#scanIcon').classList.remove('scanning');
+            return;
+        }
 
-            const { data } = await worker.recognize(imageUrl);
-            await worker.terminate();
+        try {
+            const imageUrl = URL.createObjectURL(imageBlob);
+
+            // Add a timeout so users aren't stuck forever
+            const ocrTimeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('OCR timed out after 90 seconds. Try a clearer photo.')), 90000)
+            );
+
+            const ocrWork = (async () => {
+                const worker = await Tesseract.createWorker('eng', 1, {
+                    logger: (m) => {
+                        if (m.status === 'recognizing text') {
+                            const pct = Math.round(m.progress * 100);
+                            ocrProgressFill.style.width = pct + '%';
+                            ocrStatus.textContent = `Recognizing text... ${pct}%`;
+                        } else if (m.status === 'loading language traineddata') {
+                            ocrProgressFill.style.width = '15%';
+                            ocrStatus.textContent = 'Loading language data (first time may take a moment)...';
+                        } else if (m.status === 'initializing api') {
+                            ocrProgressFill.style.width = '30%';
+                            ocrStatus.textContent = 'Starting OCR engine...';
+                        } else {
+                            ocrStatus.textContent = m.status || 'Processing...';
+                        }
+                    }
+                });
+
+                const { data } = await worker.recognize(imageUrl);
+                await worker.terminate();
+                return data;
+            })();
+
+            const data = await Promise.race([ocrWork, ocrTimeout]);
             URL.revokeObjectURL(imageUrl);
 
+            // Show results even if text is empty
             ocrProgress.style.display = 'none';
             extractedData.style.display = '';
             $('#step4Actions').style.display = '';
-            $('#step4Title').textContent = 'Review Extracted Data';
-            $('#step4Desc').textContent = 'Edit any incorrectly scanned items below';
             $('#scanIcon').classList.remove('scanning');
 
-            rawText.textContent = data.text;
-            parseReceiptData(data.text);
+            if (!data.text || data.text.trim().length === 0) {
+                $('#step4Title').textContent = 'No Text Found';
+                $('#step4Desc').textContent = 'Could not read text from this image. You can add items manually below.';
+                rawText.textContent = '(no text detected)';
+                renderItemsTable([]);
+            } else {
+                $('#step4Title').textContent = 'Review Extracted Data';
+                $('#step4Desc').textContent = 'Edit any incorrectly scanned items below';
+                rawText.textContent = data.text;
+                parseReceiptData(data.text);
+            }
         } catch (err) {
             console.error('OCR Error:', err);
-            ocrStatus.textContent = 'Error scanning receipt. Please try again.';
+            ocrStatus.textContent = err.message || 'Error scanning receipt. Please try again.';
             ocrProgressFill.style.width = '100%';
-            ocrProgressFill.style.background = 'var(--danger)';
+            ocrProgressFill.style.background = 'var(--danger, #e74c3c)';
             $('#step4Actions').style.display = '';
             $('#scanIcon').classList.remove('scanning');
         }
