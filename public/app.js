@@ -141,9 +141,24 @@
     $('#btnNext1').addEventListener('click', () => {
         if (validateStep(1)) {
             goToStep(2);
-            // Load this customer's slips in background
             loadMySlips(customerNameInput.value.trim());
         }
+    });
+
+    // Auto-load history when they type their name
+    let typingTimer;
+    customerNameInput.addEventListener('input', () => {
+        clearTimeout(typingTimer);
+        const name = customerNameInput.value.trim();
+        if (name.length > 2) {
+            typingTimer = setTimeout(() => loadMySlips(name), 800);
+        } else {
+            $('#mySlipsSection').style.display = 'none';
+        }
+    });
+    customerNameInput.addEventListener('blur', () => {
+        const name = customerNameInput.value.trim();
+        if (name) loadMySlips(name);
     });
 
     $('#btnNext2').addEventListener('click', () => {
@@ -271,6 +286,29 @@
                     canvas.height = h;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, w, h);
+
+                    // --- Image Pre-processing for better OCR ---
+                    const imageData = ctx.getImageData(0, 0, w, h);
+                    const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        // 1. Grayscale
+                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        // 2. High Contrast / Threshold (makes text pop)
+                        const contrast = 128;
+                        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                        let color = factor * (avg - 128) + 128;
+
+                        // Clamp
+                        if (color > 255) color = 255;
+                        else if (color < 0) color = 0;
+
+                        data[i] = color;     // red
+                        data[i + 1] = color; // green
+                        data[i + 2] = color; // blue
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                    // ------------------------------------------
+
                     canvas.toBlob((blob) => {
                         if (blob) resolve(blob);
                         else reject(new Error('Failed to convert image'));
