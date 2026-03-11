@@ -24,6 +24,8 @@
 
     const customerNameInput = $('#customerName');
     const storeNameInput = $('#storeName');
+    const customStoreNameInput = $('#customStoreName');
+    const customStoreGroup = $('#customStoreGroup');
     const storeBranchInput = $('#storeBranch');
     const fileInput = $('#fileInput');
     const cameraInput = $('#cameraInput');
@@ -104,8 +106,12 @@
             return true;
         }
         if (step === 2) {
-            const store = storeNameInput.value.trim();
+            let store = storeNameInput.value;
             if (!store) { shakeInput(storeNameInput); return false; }
+            if (store === 'Other') {
+                store = customStoreNameInput.value.trim();
+                if (!store) { shakeInput(customStoreNameInput); return false; }
+            }
             return true;
         }
         if (step === 3) return capturedImage !== null;
@@ -136,8 +142,21 @@
     });
 
     // ========================
-    // Button Handlers
+    // Button Handlers & Form Logic
     // ========================
+
+    // Store Dropdown Logic
+    storeNameInput.addEventListener('change', () => {
+        if (storeNameInput.value === 'Other') {
+            customStoreGroup.style.display = 'block';
+            customStoreNameInput.required = true;
+        } else {
+            customStoreGroup.style.display = 'none';
+            customStoreNameInput.required = false;
+            customStoreNameInput.value = '';
+        }
+    });
+
     $('#btnNext1').addEventListener('click', () => {
         if (validateStep(1)) {
             goToStep(2);
@@ -585,7 +604,7 @@
 
         const transaction = {
             customer: customerNameInput.value.trim(),
-            store: storeNameInput.value.trim(),
+            store: storeNameInput.value === 'Other' ? customStoreNameInput.value.trim() : storeNameInput.value,
             branch: storeBranchInput.value.trim(),
             category: selectedCategory,
             items,
@@ -720,6 +739,8 @@
     function resetForm() {
         customerNameInput.value = '';
         storeNameInput.value = '';
+        customStoreNameInput.value = '';
+        customStoreGroup.style.display = 'none';
         storeBranchInput.value = '';
         capturedImage = null;
         imagePreview.style.display = 'none';
