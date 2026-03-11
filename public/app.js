@@ -419,35 +419,53 @@
         const items = [];
         let subtotal = '', tax = '', total = '';
 
-        const priceRegex = /R?\s*(\d+[.,]\d{2})\s*$/;
+        // Matches R 12.00 or just 12.00, ignoring trailing letters like " y" or "\"
+        const priceRegex = /R?\s*(\d+[.,]\d{2}|\d{3,6})(?:[^\d]*)$/;
         const totalRegex = /(?:total|amount\s*due|balance\s*due|totaal)/i;
         const subtotalRegex = /(?:sub\s*total|subtotal|sub-total)/i;
         const taxRegex = /(?:vat|tax|btw)/i;
-        const qtyPriceRegex = /(\d+)\s*[xX@]\s*R?\s*(\d+[.,]\d{2})/;
+        const qtyPriceRegex = /(\d+)\s*[xX@]\s*R?\s*(\d+[.,]?\d{2})/;
         const skipRegex = /(?:change|cash|card|visa|mastercard|eft|debit|credit|rounding|tender|payment|receipt|invoice|tel|phone|fax|vat\s*no|reg\s*no|date|time|cashier|operator|thank|welcome|visit)/i;
 
+        function formatPrice(val) {
+            let p = val.replace(/[^0-9.,]/g, '').replace(',', '.');
+            if (!p.includes('.')) {
+                // e.g. "2739" -> "27.39"
+                if (p.length > 2) p = p.slice(0, -2) + '.' + p.slice(-2);
+                else p = p + '.00';
+            }
+            return parseFloat(p).toFixed(2);
+        }
+
+        let previousLine = '';
+
         for (const line of lines) {
-            if (skipRegex.test(line) && !totalRegex.test(line) && !subtotalRegex.test(line) && !taxRegex.test(line)) continue;
+            let isSkip = skipRegex.test(line);
 
             if (totalRegex.test(line)) {
                 const m = line.match(priceRegex);
-                if (m) total = m[1].replace(',', '.');
-                continue;
+                if (m) total = formatPrice(m[1]);
+                if (isSkip) continue; // Don't let total line be treated as an item if it overlaps
             }
             if (subtotalRegex.test(line)) {
                 const m = line.match(priceRegex);
-                if (m) subtotal = m[1].replace(',', '.');
-                continue;
+                if (m) subtotal = formatPrice(m[1]);
+                if (isSkip) continue;
             }
             if (taxRegex.test(line)) {
                 const m = line.match(priceRegex);
-                if (m) tax = m[1].replace(',', '.');
+                if (m) tax = formatPrice(m[1]);
+                if (isSkip) continue;
+            }
+
+            if (isSkip && !totalRegex.test(line) && !subtotalRegex.test(line) && !taxRegex.test(line)) {
+                previousLine = line;
                 continue;
             }
 
             const priceMatch = line.match(priceRegex);
             if (priceMatch) {
-                const price = priceMatch[1].replace(',', '.');
+                const price = formatPrice(priceMatch[1]);
                 let itemName = line.substring(0, priceMatch.index).trim();
                 let qty = '1';
 
@@ -461,11 +479,21 @@
                 }
 
                 itemName = itemName.replace(/^[\-\*\s]+/, '').replace(/[\-\*\s]+$/, '').replace(/\s*R\s*$/, '').trim();
-                if (itemName.length < 2) itemName = line.substring(0, priceMatch.index).trim();
-                if (itemName.length < 1) continue;
 
-                items.push({ name: itemName, qty, price });
+                // If item name is just "Price:" or empty because it wrapped from the line above
+                if (/^(price|amount|item|qty)[:\s]*$/i.test(itemName) || itemName.length < 2) {
+                    if (previousLine.length > 3) {
+                        itemName = previousLine.replace(/^[\-\*\s]+/, '').trim();
+                    } else {
+                        itemName = "Item";
+                    }
+                }
+
+                if (itemName.length > 1 && !itemName.toLowerCase().includes('total')) {
+                    items.push({ name: itemName, qty, price });
+                }
             }
+            previousLine = line;
         }
 
         // If OCR returned text, but we couldn't find ANY prices/items
