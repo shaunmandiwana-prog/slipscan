@@ -440,23 +440,33 @@
         let previousLine = '';
 
         for (const line of lines) {
+            // KFC Specific Skip
+            if (/^\d+\s*@\s*\d+[.,]\d{2}$/.test(line)) continue;
+
             let isSkip = skipRegex.test(line);
+            let handledAsTotal = false;
 
             if (totalRegex.test(line)) {
                 const m = line.match(priceRegex);
-                if (m) total = formatPrice(m[1]);
-                if (isSkip) continue; // Don't let total line be treated as an item if it overlaps
+                if (m) {
+                    if (!total || !line.toLowerCase().includes('exclusive')) {
+                        total = formatPrice(m[1]);
+                    }
+                }
+                handledAsTotal = true;
             }
             if (subtotalRegex.test(line)) {
                 const m = line.match(priceRegex);
                 if (m) subtotal = formatPrice(m[1]);
-                if (isSkip) continue;
+                handledAsTotal = true;
             }
             if (taxRegex.test(line)) {
                 const m = line.match(priceRegex);
                 if (m) tax = formatPrice(m[1]);
-                if (isSkip) continue;
+                handledAsTotal = true;
             }
+
+            if (handledAsTotal) continue;
 
             if (isSkip && !totalRegex.test(line) && !subtotalRegex.test(line) && !taxRegex.test(line)) {
                 previousLine = line;
