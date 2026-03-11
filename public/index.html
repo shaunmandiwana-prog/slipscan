@@ -212,6 +212,16 @@
                     <input type="date" id="transactionDate" required>
                 </div>
                 <div class="form-group">
+                    <label for="paymentMethod">Payment Method</label>
+                    <div class="select-wrapper">
+                        <select id="paymentMethod" required>
+                            <option value="Card (Debit/Credit)" selected>Card (Debit/Credit)</option>
+                            <option value="Cash">Cash</option>
+                            <option value="EFT / Other">EFT / Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label for="category">Spending Category</label>
                     <div class="category-grid" id="categoryGrid">
                         <button type="button" class="category-btn active" data-category="Groceries">

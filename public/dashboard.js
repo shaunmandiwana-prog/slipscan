@@ -318,6 +318,7 @@
                 <td>${t.age || '-'}</td>
                 <td>${escapeHtml(t.store)}</td>
                 <td><span class="cat-badge">${t.category || 'Other'}</span></td>
+                <td>${t.payment_method || 'Card (Debit/Credit)'}</td>
                 <td>${t.items ? t.items.length : 0}</td>
                 <td class="total-cell">R ${t.total}</td>
                 <td><button class="btn-view" data-id="${t.id}">View</button></td>
@@ -372,6 +373,10 @@
                 <span class="modal-value">${t.category || 'Other'}</span>
             </div>
             <div class="modal-summary-row">
+                <span class="modal-label">Payment Method</span>
+                <span class="modal-value">${t.payment_method || 'Card (Debit/Credit)'}</span>
+            </div>
+            <div class="modal-summary-row">
                 <span class="modal-label">Date</span>
                 <span class="modal-value">${t.purchase_date || formatDate(t.created_at)}</span>
             </div>
@@ -399,10 +404,10 @@
     $('#btnExportCsv').addEventListener('click', () => {
         if (allTransactions.length === 0) return;
 
-        let csv = 'Purchase Date,Customer,Age,Store,Branch,Category,Items,Subtotal,Tax,Total\n';
+        let csv = 'Purchase Date,Customer,Age,Store,Branch,Category,Payment Method,Items,Subtotal,Tax,Total\n';
         allTransactions.forEach(t => {
             const itemList = (t.items || []).map(i => `${i.name} x${i.qty}`).join('; ');
-            csv += `"${t.purchase_date || formatDate(t.created_at)}","${t.customer}","${t.age || ''}","${t.store}","${t.branch || ''}","${t.category || 'Other'}","${itemList}","${t.subtotal || ''}","${t.tax || ''}","${t.total || ''}"\n`;
+            csv += `"${t.purchase_date || formatDate(t.created_at)}","${t.customer}","${t.age || ''}","${t.store}","${t.branch || ''}","${t.category || 'Other'}","${t.payment_method || 'Card (Debit/Credit)'}","${itemList}","${t.subtotal || ''}","${t.tax || ''}","${t.total || ''}"\n`;
         });
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

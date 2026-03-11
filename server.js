@@ -47,6 +47,7 @@ async function initDB() {
     // Backwards compatibility for existing local database files
     try { db.run(`ALTER TABLE transactions ADD COLUMN age INTEGER DEFAULT 0`); } catch (e) { }
     try { db.run(`ALTER TABLE transactions ADD COLUMN purchase_date TEXT DEFAULT ''`); } catch (e) { }
+    try { db.run(`ALTER TABLE transactions ADD COLUMN payment_method TEXT DEFAULT 'Card (Debit/Credit)'`); } catch (e) { }
 
     db.run(`
         CREATE TABLE IF NOT EXISTS transaction_items (
@@ -120,7 +121,7 @@ function requireAdmin(req, res, next) {
 // Save a new transaction
 app.post('/api/transactions', (req, res) => {
     try {
-        const { customer, age, store, branch, purchase_date, category, items, subtotal, tax, total, rawText } = req.body;
+        const { customer, age, store, branch, purchase_date, payment_method, category, items, subtotal, tax, total, rawText } = req.body;
 
         if (!customer || !store) {
             return res.status(400).json({ error: 'Customer and store are required' });
@@ -129,9 +130,9 @@ app.post('/api/transactions', (req, res) => {
         const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
         db.run(
-            `INSERT INTO transactions (id, customer, age, store, branch, purchase_date, category, subtotal, tax, total, raw_text)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, customer, parseInt(age) || 0, store, branch || '', purchase_date || '', category || 'Other', subtotal || '0.00', tax || '0.00', total || '0.00', rawText || '']
+            `INSERT INTO transactions (id, customer, age, store, branch, purchase_date, payment_method, category, subtotal, tax, total, raw_text)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [id, customer, parseInt(age) || 0, store, branch || '', purchase_date || '', payment_method || 'Card (Debit/Credit)', category || 'Other', subtotal || '0.00', tax || '0.00', total || '0.00', rawText || '']
         );
 
         if (items && Array.isArray(items)) {

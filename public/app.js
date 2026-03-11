@@ -29,6 +29,7 @@
     const customStoreGroup = $('#customStoreGroup');
     const storeBranchInput = $('#storeBranch');
     const transactionDateInput = $('#transactionDate');
+    const paymentMethodInput = $('#paymentMethod');
     const fileInput = $('#fileInput');
     const cameraInput = $('#cameraInput');
 
@@ -615,6 +616,7 @@
             store: storeNameInput.value === 'Other' ? customStoreNameInput.value.trim() : storeNameInput.value,
             branch: storeBranchInput.value.trim(),
             purchase_date: transactionDateInput.value,
+            payment_method: paymentMethodInput.value,
             category: selectedCategory,
             items,
             subtotal: subtotalInput.value,
