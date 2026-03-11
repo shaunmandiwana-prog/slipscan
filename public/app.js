@@ -423,7 +423,7 @@
         const priceRegex = /R?\s*(\d+[.,]\d{2}|\d{3,6})(?:[^\d]*)$/;
         const totalRegex = /(?:total|amount\s*due|balance\s*due|totaal)/i;
         const subtotalRegex = /(?:sub\s*total|subtotal|sub-total)/i;
-        const taxRegex = /(?:vat|tax|btw)/i;
+        const taxRegex = /(?:vat|tax|btw|included)/i;
         const qtyPriceRegex = /(\d+)\s*[xX@]\s*R?\s*(\d+[.,]?\d{2})/;
         const skipRegex = /(?:change|cash|card|visa|mastercard|eft|debit|credit|rounding|tender|payment|receipt|invoice|tel|phone|fax|vat\s*no|reg\s*no|date|time|cashier|operator|thank|welcome|visit)/i;
 
@@ -488,7 +488,7 @@
                     itemName = itemName.substring(leadingQty[0].length);
                 }
 
-                itemName = itemName.replace(/^[\-\*\s]+/, '').replace(/[\-\*\s]+$/, '').replace(/\s*R\s*$/, '').trim();
+                itemName = itemName.replace(/^[\-\*\s:=]+/, '').replace(/[\-\*\s]+$/, '').replace(/\s*R\s*$/, '').trim();
 
                 // If item name is just "Price:" or empty because it wrapped from the line above
                 if (/^(price|amount|item|qty)[:\s]*$/i.test(itemName) || itemName.length < 2) {
