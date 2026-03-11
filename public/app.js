@@ -468,6 +468,22 @@
             }
         }
 
+        // If OCR returned text, but we couldn't find ANY prices/items
+        if (items.length === 0) {
+            $('#step4Title').textContent = 'Scan Unclear';
+            $('#step4Desc').innerHTML = `
+                <div style="color:var(--text-secondary);margin-bottom:10px;">
+                    Could not read any prices from this photo.
+                </div>
+                <ul style="font-size:0.9rem;text-align:left;background:var(--bg-secondary);padding:10px 10px 10px 25px;border-radius:6px;">
+                    <li>Ensure the receipt is flat (not crumpled)</li>
+                    <li>Take the photo from directly above</li>
+                    <li>Avoid dark shadows over the text</li>
+                </ul>
+                <div style="margin-top:10px;">You can enter items manually below, or try taking a new photo.</div>
+            `;
+        }
+
         renderItemsTable(items);
         subtotalInput.value = subtotal;
         taxInput.value = tax;
