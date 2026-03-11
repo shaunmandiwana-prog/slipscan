@@ -81,8 +81,8 @@
     function updateProgress(step) {
         $$('.progress-step').forEach((el, i) => {
             const s = i + 1;
-            el.classList.toggle('active', s === step);
-            el.classList.toggle('completed', s < step);
+            el.classList.toggle('active', s === step && step !== 5);
+            el.classList.toggle('completed', s < step || (s === 5 && step === 5));
         });
         for (let i = 1; i <= 4; i++) {
             const fill = $(`#line${i}`);
