@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SlipScan — Receipt Scanner & Data Extractor</title>
+    <title>ZaData — Receipt Scanner & Data Extractor</title>
     <meta name="description" content="Scan and upload transaction slips to automatically extract receipt data.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,9 +37,8 @@
                             stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                 </div>
-                <h1>SlipScan</h1>
+                <h1>ZaData</h1>
             </div>
-            <p class="tagline">Scan • Extract • Organize</p>
         </header>
 
         <!-- Progress bar -->
@@ -159,12 +158,13 @@
                 </div>
                 <div class="form-group" id="customStoreGroup" style="display: none;">
                     <label for="customStoreName">Custom Store Name</label>
-                    <input type="text" id="customStoreName" placeholder="Enter store name/description" autocomplete="off">
+                    <input type="text" id="customStoreName" placeholder="Enter store name/description"
+                        autocomplete="off">
                 </div>
                 <div class="form-group">
-                    <label for="storeBranch">Branch / Location <span class="optional">(optional)</span></label>
+                    <label for="storeBranch">Branch / Location</label>
                     <input type="text" id="storeBranch" placeholder="e.g. Sandton City, Mall of Africa"
-                        autocomplete="off">
+                        autocomplete="off" required>
                 </div>
                 <div class="form-group">
                     <label for="category">Spending Category</label>
@@ -472,7 +472,7 @@
         </section>
 
         <footer class="app-footer">
-            <p>SlipScan &copy; 2026 — Powered by <a href="https://github.com/naptha/tesseract.js" target="_blank"
+            <p>ZaData &copy; 2026 — Powered by <a href="https://github.com/naptha/tesseract.js" target="_blank"
                     rel="noopener">Tesseract.js</a></p>
         </footer>
     </div>
