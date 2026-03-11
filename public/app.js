@@ -23,12 +23,17 @@
     const steps = [null, $('#step1'), $('#step2'), $('#step3'), $('#step4'), $('#step5')];
 
     const customerNameInput = $('#customerName');
+    const customerAgeInput = $('#customerAge');
     const storeNameInput = $('#storeName');
     const customStoreNameInput = $('#customStoreName');
     const customStoreGroup = $('#customStoreGroup');
     const storeBranchInput = $('#storeBranch');
+    const transactionDateInput = $('#transactionDate');
     const fileInput = $('#fileInput');
     const cameraInput = $('#cameraInput');
+
+    // Setup defaults
+    transactionDateInput.valueAsDate = new Date();
 
     const uploadArea = $('#uploadArea');
     const uploadContent = $('#uploadContent');
@@ -103,6 +108,8 @@
         if (step === 1) {
             const name = customerNameInput.value.trim();
             if (!name) { shakeInput(customerNameInput); return false; }
+            const age = customerAgeInput.value;
+            if (!age || age < 10 || age > 100) { shakeInput(customerAgeInput); return false; }
             return true;
         }
         if (step === 2) {
@@ -604,8 +611,10 @@
 
         const transaction = {
             customer: customerNameInput.value.trim(),
+            age: customerAgeInput.value,
             store: storeNameInput.value === 'Other' ? customStoreNameInput.value.trim() : storeNameInput.value,
             branch: storeBranchInput.value.trim(),
+            purchase_date: transactionDateInput.value,
             category: selectedCategory,
             items,
             subtotal: subtotalInput.value,

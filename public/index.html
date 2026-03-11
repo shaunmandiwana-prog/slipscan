@@ -99,6 +99,11 @@
                     <input type="text" id="customerName" placeholder="e.g. John Doe" autocomplete="off" required>
                     <span class="input-hint">Who made this purchase?</span>
                 </div>
+                <div class="form-group">
+                    <label for="customerAge">Your Age</label>
+                    <input type="number" id="customerAge" placeholder="e.g. 25" min="10" max="100" autocomplete="off"
+                        required>
+                </div>
                 <div class="form-actions">
                     <div></div>
                     <button class="btn btn-primary" id="btnNext1">
@@ -130,28 +135,64 @@
                     <div class="select-wrapper">
                         <select id="storeName" required>
                             <option value="" disabled selected>Select a store</option>
-                            <option value="Pick n Pay">Pick n Pay</option>
-                            <option value="Shoprite">Shoprite</option>
-                            <option value="Checkers">Checkers</option>
-                            <option value="Woolworths">Woolworths</option>
-                            <option value="Spar">Spar</option>
-                            <option value="Game">Game</option>
-                            <option value="Makro">Makro</option>
-                            <option value="Clicks">Clicks</option>
-                            <option value="Dischem">Dischem</option>
-                            <option value="Mr Price">Mr Price</option>
-                            <option value="Pep">Pep</option>
-                            <option value="Ackermans">Ackermans</option>
-                            <option value="Takealot">Takealot</option>
-                            <option value="Builders Warehouse">Builders Warehouse</option>
-                            <option value="Engen">Engen</option>
-                            <option value="Shell">Shell</option>
-                            <option value="Sasol">Sasol</option>
-                            <option value="KFC">KFC</option>
-                            <option value="McDonald's">McDonald's</option>
-                            <option value="Steers">Steers</option>
-                            <option value="Nando's">Nando's</option>
-                            <option value="Cash Converters">Cash Converters</option>
+                            <optgroup label="Food & Groceries">
+                                <option value="Pick n Pay">Pick n Pay</option>
+                                <option value="Shoprite">Shoprite</option>
+                                <option value="Checkers">Checkers</option>
+                                <option value="Woolworths">Woolworths</option>
+                                <option value="Spar">Spar</option>
+                                <option value="Usave">Usave</option>
+                                <option value="Food Lover's Market">Food Lover's Market</option>
+                            </optgroup>
+                            <optgroup label="Clothing & Apparel">
+                                <option value="Mr Price">Mr Price</option>
+                                <option value="Pep">Pep</option>
+                                <option value="Ackermans">Ackermans</option>
+                                <option value="Cotton On">Cotton On</option>
+                                <option value="Edgars">Edgars</option>
+                                <option value="Truworths">Truworths</option>
+                                <option value="Jet">Jet</option>
+                            </optgroup>
+                            <optgroup label="Health & Beauty">
+                                <option value="Clicks">Clicks</option>
+                                <option value="Dischem">Dischem</option>
+                                <option value="Signature Cosmetics">Signature Cosmetics</option>
+                            </optgroup>
+                            <optgroup label="Electronics & Tech">
+                                <option value="Incredible Connection">Incredible Connection</option>
+                                <option value="MTN">MTN</option>
+                                <option value="Vodacom">Vodacom</option>
+                                <option value="Telkom">Telkom</option>
+                                <option value="Cell C">Cell C</option>
+                            </optgroup>
+                            <optgroup label="Retail & Department">
+                                <option value="Makro">Makro</option>
+                                <option value="Game">Game</option>
+                                <option value="Walmart">Walmart</option>
+                                <option value="Takealot">Takealot</option>
+                            </optgroup>
+                            <optgroup label="Home & Hardware">
+                                <option value="Builders Warehouse">Builders Warehouse</option>
+                                <option value="Cash Converters">Cash Converters</option>
+                            </optgroup>
+                            <optgroup label="Sports & Outdoors">
+                                <option value="Sportsmans Warehouse">Sportsmans Warehouse</option>
+                                <option value="The Pro Shop">The Pro Shop</option>
+                                <option value="Totalsports">Totalsports</option>
+                                <option value="Sportscene">Sportscene</option>
+                            </optgroup>
+                            <optgroup label="Fast Food & Restaurants">
+                                <option value="KFC">KFC</option>
+                                <option value="McDonald's">McDonald's</option>
+                                <option value="Steers">Steers</option>
+                                <option value="Nando's">Nando's</option>
+                            </optgroup>
+                            <optgroup label="Gas & Convenience">
+                                <option value="Engen">Engen</option>
+                                <option value="Shell">Shell</option>
+                                <option value="Sasol">Sasol</option>
+                                <option value="BP">BP</option>
+                            </optgroup>
                             <option value="Other">Other (Please specify)</option>
                         </select>
                     </div>
@@ -165,6 +206,10 @@
                     <label for="storeBranch">Branch / Location</label>
                     <input type="text" id="storeBranch" placeholder="e.g. Sandton City, Mall of Africa"
                         autocomplete="off" required>
+                </div>
+                <div class="form-group">
+                    <label for="transactionDate">Purchase Date</label>
+                    <input type="date" id="transactionDate" required>
                 </div>
                 <div class="form-group">
                     <label for="category">Spending Category</label>

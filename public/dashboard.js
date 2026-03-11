@@ -309,17 +309,20 @@
         }
 
         noResults.style.display = 'none';
-        body.innerHTML = transactions.map(t => `
+        body.innerHTML = transactions.map(t => {
+            const displayDate = t.purchase_date ? t.purchase_date : formatDate(t.created_at).split(',')[0];
+            return `
             <tr data-id="${t.id}">
-                <td>${formatDate(t.created_at)}</td>
+                <td>${displayDate}</td>
                 <td>${escapeHtml(t.customer)}</td>
+                <td>${t.age || '-'}</td>
                 <td>${escapeHtml(t.store)}</td>
                 <td><span class="cat-badge">${t.category || 'Other'}</span></td>
                 <td>${t.items ? t.items.length : 0}</td>
                 <td class="total-cell">R ${t.total}</td>
                 <td><button class="btn-view" data-id="${t.id}">View</button></td>
             </tr>
-        `).join('');
+        `}).join('');
 
         // Attach view handlers
         body.querySelectorAll('.btn-view').forEach(btn => {
@@ -358,7 +361,7 @@
             <h3>Transaction Details</h3>
             <div class="modal-summary-row">
                 <span class="modal-label">Customer</span>
-                <span class="modal-value">${escapeHtml(t.customer)}</span>
+                <span class="modal-value">${escapeHtml(t.customer)} (Age: ${t.age || '-'})</span>
             </div>
             <div class="modal-summary-row">
                 <span class="modal-label">Store</span>
@@ -370,7 +373,7 @@
             </div>
             <div class="modal-summary-row">
                 <span class="modal-label">Date</span>
-                <span class="modal-value">${formatDate(t.created_at)}</span>
+                <span class="modal-value">${t.purchase_date || formatDate(t.created_at)}</span>
             </div>
             <table class="modal-items-table">
                 <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
@@ -396,16 +399,16 @@
     $('#btnExportCsv').addEventListener('click', () => {
         if (allTransactions.length === 0) return;
 
-        let csv = 'Date,Customer,Store,Branch,Category,Items,Subtotal,Tax,Total\n';
+        let csv = 'Purchase Date,Customer,Age,Store,Branch,Category,Items,Subtotal,Tax,Total\n';
         allTransactions.forEach(t => {
             const itemList = (t.items || []).map(i => `${i.name} x${i.qty}`).join('; ');
-            csv += `"${formatDate(t.created_at)}","${t.customer}","${t.store}","${t.branch || ''}","${t.category || 'Other'}","${itemList}","${t.subtotal || ''}","${t.tax || ''}","${t.total || ''}"\n`;
+            csv += `"${t.purchase_date || formatDate(t.created_at)}","${t.customer}","${t.age || ''}","${t.store}","${t.branch || ''}","${t.category || 'Other'}","${itemList}","${t.subtotal || ''}","${t.tax || ''}","${t.total || ''}"\n`;
         });
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `slipscan_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.download = `zadata_export_${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
     });
