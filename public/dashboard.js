@@ -1,5 +1,5 @@
-/* ============================================================
-   SlipScan — Dashboard Logic
+﻿/* ============================================================
+   SlipScan â€” Dashboard Logic
    PIN auth, fetch stats, render Chart.js charts, transaction table
    ============================================================ */
 
@@ -70,6 +70,7 @@
             renderCustomerChart(stats.byCustomer);
             renderTopItems(stats.topItems);
             renderTransactionTable(allTransactions);
+            if (stats.loyalty) renderLoyalty(stats.loyalty);
         } catch (err) {
             console.error('Load error:', err);
         }
@@ -290,7 +291,7 @@
             <div class="top-item">
                 <span class="top-item-rank">${i + 1}</span>
                 <span class="top-item-name">${escapeHtml(item.name)}</span>
-                <span class="top-item-count">×${item.total_qty}</span>
+                <span class="top-item-count">Ã—${item.total_qty}</span>
             </div>
         `).join('');
     }
@@ -362,7 +363,7 @@
             </div>
             <div class="modal-summary-row">
                 <span class="modal-label">Store</span>
-                <span class="modal-value">${escapeHtml(t.store)}${t.branch ? ' – ' + escapeHtml(t.branch) : ''}</span>
+                <span class="modal-value">${escapeHtml(t.store)}${t.branch ? ' â€“ ' + escapeHtml(t.branch) : ''}</span>
             </div>
             <div class="modal-summary-row">
                 <span class="modal-label">Category</span>
@@ -412,6 +413,51 @@
 
     // Refresh
     $('#btnRefresh').addEventListener('click', loadDashboard);
+    // ========================
+    // Loyalty Points Section
+    // ========================
+    function renderLoyalty(loyalty) {
+        if (!loyalty) return;
+        var ov = loyalty.overview || {};
+        var el;
+
+        el = $('#kpiTotalPoints');
+        if (el) el.textContent = (ov.total_points_awarded || 0).toLocaleString();
+
+        el = $('#kpiEnrolled');
+        if (el) el.textContent = ov.enrolled_customers || 0;
+
+        el = $('#kpiAvgPoints');
+        if (el) el.textContent = Math.round(ov.avg_points || 0);
+
+        var tiers = loyalty.tiers || {};
+        el = $('#kpiTierBreakdown');
+        if (el) el.textContent = (tiers.gold || 0) + ' / ' + (tiers.silver || 0) + ' / ' + (tiers.bronze || 0);
+
+        el = $('#pointsPerScanBadge');
+        if (el) el.textContent = '+' + (loyalty.pointsPerScan || 10) + ' pts/scan';
+
+        var lb = $('#pointsLeaderboard');
+        if (!lb) return;
+        var data = loyalty.leaderboard || [];
+        if (data.length === 0) {
+            lb.innerHTML = '<p class="empty-msg">No loyalty data yet. Points are awarded automatically with each scan.</p>';
+            return;
+        }
+
+        lb.innerHTML = data.map(function(c, i) {
+            var tier = c.total_points >= 300 ? 'gold' : c.total_points >= 100 ? 'silver' : 'bronze';
+            var tierLabel = c.total_points >= 300 ? 'GOLD' : c.total_points >= 100 ? 'SILVER' : 'BRONZE';
+            var rankClass = i < 1 ? 'gold' : i < 3 ? 'silver' : i < 5 ? 'bronze' : 'default';
+            return '<div class="lb-row">' +
+                '<span class="lb-rank ' + rankClass + '">' + (i + 1) + '</span>' +
+                '<div class="lb-info"><div class="lb-name">' + escapeHtml(c.customer) + '</div>' +
+                '<div class="lb-detail">' + c.total_scans + ' scans | R ' + (c.total_spent || 0).toFixed(2) + ' spent</div></div>' +
+                '<span class="lb-tier-badge ' + tier + '">' + tierLabel + '</span>' +
+                '<span class="lb-points">' + c.total_points + ' pts</span></div>';
+        }).join('');
+    }
+
 
     // ========================
     // Utility
@@ -436,3 +482,4 @@
     }
 
 })();
+

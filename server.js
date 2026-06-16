@@ -1,5 +1,5 @@
-﻿/* ============================================================
-   SlipScan â€” Express Server
+/* ============================================================
+   SlipScan - Express Server
    SQLite database (sql.js), REST API, serves static files
    ============================================================ */
 
@@ -12,6 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PIN = process.env.ADMIN_PIN || '1234';
 const DB_PATH = path.join(__dirname, 'transactions.db');
+const POINTS_PER_SCAN = 10;
 
 let db;
 
@@ -21,7 +22,6 @@ let db;
 async function initDB() {
     const SQL = await initSqlJs();
 
-    // Load existing database if exists
     if (fs.existsSync(DB_PATH)) {
         const buffer = fs.readFileSync(DB_PATH);
         db = new SQL.Database(buffer);
@@ -55,10 +55,19 @@ async function initDB() {
         )
     `);
 
-    // Create indexes
-    try { db.run(`CREATE INDEX idx_transactions_customer ON transactions(customer)`); } catch (e) { }
-    try { db.run(`CREATE INDEX idx_transactions_category ON transactions(category)`); } catch (e) { }
-    try { db.run(`CREATE INDEX idx_transactions_created ON transactions(created_at)`); } catch (e) { }
+    db.run(`
+        CREATE TABLE IF NOT EXISTS customer_points (
+            customer TEXT PRIMARY KEY,
+            total_points INTEGER DEFAULT 0,
+            total_scans INTEGER DEFAULT 0,
+            total_spent REAL DEFAULT 0,
+            last_scan TEXT DEFAULT (datetime('now', 'localtime'))
+        )
+    `);
+
+    try { db.run('CREATE INDEX idx_transactions_customer ON transactions(customer)'); } catch (e) {}
+    try { db.run('CREATE INDEX idx_transactions_category ON transactions(category)'); } catch (e) {}
+    try { db.run('CREATE INDEX idx_transactions_created ON transactions(created_at)'); } catch (e) {}
 
     saveDB();
     console.log('  Database initialized.');
@@ -70,7 +79,6 @@ function saveDB() {
     fs.writeFileSync(DB_PATH, buffer);
 }
 
-// Helper to run SELECT queries and get results as array of objects
 function queryAll(sql, params = []) {
     const stmt = db.prepare(sql);
     stmt.bind(params);
@@ -93,13 +101,12 @@ function queryOne(sql, params = []) {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve dashboard at /dashboard
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // ========================
-// Admin PIN check middleware
+// Admin PIN check
 // ========================
 function requireAdmin(req, res, next) {
     const pin = req.headers['x-admin-pin'] || req.query.pin;
@@ -107,6 +114,26 @@ function requireAdmin(req, res, next) {
         return res.status(401).json({ error: 'Invalid PIN' });
     }
     next();
+}
+
+// ========================
+// Points Helper
+// ========================
+function awardPoints(customer, spentAmount) {
+    const existing = queryOne('SELECT * FROM customer_points WHERE customer = ?', [customer]);
+    const spent = parseFloat(spentAmount) || 0;
+
+    if (existing) {
+        db.run(
+            `UPDATE customer_points SET total_points = total_points + ?, total_scans = total_scans + 1, total_spent = total_spent + ?, last_scan = datetime('now', 'localtime') WHERE customer = ?`,
+            [POINTS_PER_SCAN, spent, customer]
+        );
+    } else {
+        db.run(
+            `INSERT INTO customer_points (customer, total_points, total_scans, total_spent, last_scan) VALUES (?, ?, 1, ?, datetime('now', 'localtime'))`,
+            [customer, POINTS_PER_SCAN, spent]
+        );
+    }
 }
 
 // ========================
@@ -125,8 +152,7 @@ app.post('/api/transactions', (req, res) => {
         const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
         db.run(
-            `INSERT INTO transactions (id, customer, store, branch, category, subtotal, tax, total, raw_text)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO transactions (id, customer, store, branch, category, subtotal, tax, total, raw_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [id, customer, store, branch || '', category || 'Other', subtotal || '0.00', tax || '0.00', total || '0.00', rawText || '']
         );
 
@@ -141,6 +167,9 @@ app.post('/api/transactions', (req, res) => {
             }
         }
 
+        // Award loyalty points
+        awardPoints(customer, total);
+
         saveDB();
         res.json({ success: true, id });
     } catch (err) {
@@ -154,21 +183,19 @@ app.get('/api/transactions/customer/:name', (req, res) => {
     try {
         const customerName = req.params.name;
         const transactions = queryAll(
-            `SELECT * FROM transactions WHERE customer = ? ORDER BY created_at DESC`,
+            'SELECT * FROM transactions WHERE customer = ? ORDER BY created_at DESC',
             [customerName]
         );
 
         for (const t of transactions) {
             t.items = queryAll(
-                `SELECT name, qty, price FROM transaction_items WHERE transaction_id = ?`,
+                'SELECT name, qty, price FROM transaction_items WHERE transaction_id = ?',
                 [t.id]
             );
         }
 
         const categoryCounts = queryAll(
-            `SELECT category, COUNT(*) as count, SUM(CAST(total AS REAL)) as total_amount
-             FROM transactions WHERE customer = ?
-             GROUP BY category ORDER BY count DESC`,
+            'SELECT category, COUNT(*) as count, SUM(CAST(total AS REAL)) as total_amount FROM transactions WHERE customer = ? GROUP BY category ORDER BY count DESC',
             [customerName]
         );
 
@@ -182,15 +209,13 @@ app.get('/api/transactions/customer/:name', (req, res) => {
 // Get all transactions (admin only)
 app.get('/api/transactions', requireAdmin, (req, res) => {
     try {
-        const transactions = queryAll(`SELECT * FROM transactions ORDER BY created_at DESC`);
-
+        const transactions = queryAll('SELECT * FROM transactions ORDER BY created_at DESC');
         for (const t of transactions) {
             t.items = queryAll(
-                `SELECT name, qty, price FROM transaction_items WHERE transaction_id = ?`,
+                'SELECT name, qty, price FROM transaction_items WHERE transaction_id = ?',
                 [t.id]
             );
         }
-
         res.json(transactions);
     } catch (err) {
         console.error('Error fetching transactions:', err);
@@ -235,9 +260,27 @@ app.get('/api/stats', requireAdmin, (req, res) => {
             FROM transaction_items GROUP BY LOWER(name) ORDER BY total_qty DESC LIMIT 15
         `);
 
-        const recentTransactions = queryAll(`
-            SELECT id, customer, store, category, total, created_at
-            FROM transactions ORDER BY created_at DESC LIMIT 20
+        // Loyalty points data
+        const pointsOverview = queryOne(`
+            SELECT
+                COALESCE(SUM(total_points), 0) as total_points_awarded,
+                COALESCE(SUM(total_scans), 0) as total_scans,
+                COUNT(*) as enrolled_customers,
+                COALESCE(AVG(total_points), 0) as avg_points
+            FROM customer_points
+        `);
+
+        const pointsLeaderboard = queryAll(`
+            SELECT customer, total_points, total_scans, total_spent, last_scan
+            FROM customer_points ORDER BY total_points DESC LIMIT 20
+        `);
+
+        const pointsTiers = queryOne(`
+            SELECT
+                SUM(CASE WHEN total_points >= 300 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN total_points >= 100 AND total_points < 300 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN total_points < 100 THEN 1 ELSE 0 END) as bronze
+            FROM customer_points
         `);
 
         res.json({
@@ -247,7 +290,12 @@ app.get('/api/stats', requireAdmin, (req, res) => {
             byCustomer,
             dailyTrends: dailyTrends.reverse(),
             topItems,
-            recentTransactions
+            loyalty: {
+                overview: pointsOverview || { total_points_awarded: 0, total_scans: 0, enrolled_customers: 0, avg_points: 0 },
+                leaderboard: pointsLeaderboard,
+                tiers: pointsTiers || { gold: 0, silver: 0, bronze: 0 },
+                pointsPerScan: POINTS_PER_SCAN
+            }
         });
     } catch (err) {
         console.error('Error fetching stats:', err);
@@ -273,18 +321,15 @@ app.delete('/api/transactions/:id', requireAdmin, (req, res) => {
 initDB().then(() => {
     app.listen(PORT, '0.0.0.0', () => {
         console.log('');
-        console.log('  â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—');
-        console.log('  â•‘          SlipScan Server Running         â•‘');
-        console.log('  â• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•£');
-        console.log(`  â•‘  Customer:  http://localhost:${PORT}          â•‘`);
-        console.log(`  â•‘  Dashboard: http://localhost:${PORT}/dashboard â•‘`);
-        console.log(`  â•‘  Admin PIN: ${ADMIN_PIN}                        â•‘`);
-        console.log('  â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•');
+        console.log('  SlipScan Server Running');
+        console.log('  -----------------------');
+        console.log('  Customer:  http://localhost:' + PORT);
+        console.log('  Dashboard: http://localhost:' + PORT + '/dashboard');
+        console.log('  Admin PIN: ' + ADMIN_PIN);
+        console.log('  Points per scan: ' + POINTS_PER_SCAN);
         console.log('');
     });
 }).catch(err => {
     console.error('Failed to start server:', err);
     process.exit(1);
 });
-
-

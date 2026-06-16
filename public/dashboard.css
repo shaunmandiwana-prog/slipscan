@@ -730,3 +730,25 @@ body {
         width: 140px;
     }
 }
+/* Loyalty Points Section */
+.loyalty-section { margin-bottom: 2rem; }
+.section-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+.section-header h2 { font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+.badge { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1a1a2e; font-size: 0.75rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; }
+.kpi-gold { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.points-leaderboard { display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; }
+.lb-row { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: rgba(148,163,184,0.04); border-radius: 10px; transition: background 0.2s; }
+.lb-row:hover { background: rgba(148,163,184,0.08); }
+.lb-rank { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+.lb-rank.gold { background: rgba(251,191,36,0.2); color: #fbbf24; }
+.lb-rank.silver { background: rgba(148,163,184,0.2); color: #94a3b8; }
+.lb-rank.bronze { background: rgba(205,127,50,0.2); color: #cd7f32; }
+.lb-rank.default { background: rgba(148,163,184,0.1); color: #64748b; }
+.lb-info { flex: 1; min-width: 0; }
+.lb-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-detail { font-size: 0.75rem; color: var(--text-muted); }
+.lb-points { font-weight: 700; font-size: 1rem; color: #fbbf24; white-space: nowrap; }
+.lb-tier-badge { font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.lb-tier-badge.gold { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.lb-tier-badge.silver { background: rgba(148,163,184,0.15); color: #94a3b8; }
+.lb-tier-badge.bronze { background: rgba(205,127,50,0.15); color: #cd7f32; }
