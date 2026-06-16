@@ -9,8 +9,8 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = 3000;
-const ADMIN_PIN = '1234'; // Change this to your preferred PIN
+const PORT = process.env.PORT || 3000;
+const ADMIN_PIN = process.env.ADMIN_PIN || '1234';
 const DB_PATH = path.join(__dirname, 'transactions.db');
 
 let db;
@@ -286,4 +286,5 @@ initDB().then(() => {
     console.error('Failed to start server:', err);
     process.exit(1);
 });
+
 
