@@ -1,5 +1,5 @@
-/* ============================================================
-   SlipScan — Express Server
+﻿/* ============================================================
+   SlipScan â€” Express Server
    SQLite database (sql.js), REST API, serves static files
    ============================================================ */
 
@@ -271,18 +271,19 @@ app.delete('/api/transactions/:id', requireAdmin, (req, res) => {
 // Start Server
 // ========================
 initDB().then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log('');
-        console.log('  ╔══════════════════════════════════════════╗');
-        console.log('  ║          SlipScan Server Running         ║');
-        console.log('  ╠══════════════════════════════════════════╣');
-        console.log(`  ║  Customer:  http://localhost:${PORT}          ║`);
-        console.log(`  ║  Dashboard: http://localhost:${PORT}/dashboard ║`);
-        console.log(`  ║  Admin PIN: ${ADMIN_PIN}                        ║`);
-        console.log('  ╚══════════════════════════════════════════╝');
+        console.log('  â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—');
+        console.log('  â•‘          SlipScan Server Running         â•‘');
+        console.log('  â• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•£');
+        console.log(`  â•‘  Customer:  http://localhost:${PORT}          â•‘`);
+        console.log(`  â•‘  Dashboard: http://localhost:${PORT}/dashboard â•‘`);
+        console.log(`  â•‘  Admin PIN: ${ADMIN_PIN}                        â•‘`);
+        console.log('  â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•');
         console.log('');
     });
 }).catch(err => {
     console.error('Failed to start server:', err);
     process.exit(1);
 });
+
