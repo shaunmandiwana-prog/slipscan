@@ -1,6 +1,6 @@
 /* ============================================================
-   SlipScan - Express Server
-   SQLite database (sql.js), REST API, serves static files
+   SlipScan - Express Server v3
+   Photo-based receipt capture, no client-side OCR
    ============================================================ */
 
 const express = require('express');
@@ -39,6 +39,7 @@ async function initDB() {
             subtotal TEXT DEFAULT '0.00',
             tax TEXT DEFAULT '0.00',
             total TEXT DEFAULT '0.00',
+            slip_image TEXT DEFAULT '',
             raw_text TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now', 'localtime'))
         )
@@ -64,6 +65,9 @@ async function initDB() {
             last_scan TEXT DEFAULT (datetime('now', 'localtime'))
         )
     `);
+
+    // Migration for existing DBs
+    try { db.run('ALTER TABLE transactions ADD COLUMN slip_image TEXT DEFAULT ""'); } catch (e) {}
 
     try { db.run('CREATE INDEX idx_transactions_customer ON transactions(customer)'); } catch (e) {}
     try { db.run('CREATE INDEX idx_transactions_category ON transactions(category)'); } catch (e) {}
@@ -98,7 +102,7 @@ function queryOne(sql, params = []) {
 // ========================
 // Middleware
 // ========================
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/dashboard', (req, res) => {
@@ -143,7 +147,7 @@ function awardPoints(customer, spentAmount) {
 // Save a new transaction
 app.post('/api/transactions', (req, res) => {
     try {
-        const { customer, store, branch, category, items, subtotal, tax, total, rawText } = req.body;
+        const { customer, store, branch, category, subtotal, tax, total, slipImage } = req.body;
 
         if (!customer || !store) {
             return res.status(400).json({ error: 'Customer and store are required' });
@@ -152,20 +156,9 @@ app.post('/api/transactions', (req, res) => {
         const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
         db.run(
-            `INSERT INTO transactions (id, customer, store, branch, category, subtotal, tax, total, raw_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, customer, store, branch || '', category || 'Other', subtotal || '0.00', tax || '0.00', total || '0.00', rawText || '']
+            `INSERT INTO transactions (id, customer, store, branch, category, subtotal, tax, total, slip_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [id, customer, store, branch || '', category || 'Other', subtotal || '0.00', tax || '0.00', total || '0.00', slipImage || '']
         );
-
-        if (items && Array.isArray(items)) {
-            for (const item of items) {
-                if (item.name) {
-                    db.run(
-                        `INSERT INTO transaction_items (transaction_id, name, qty, price) VALUES (?, ?, ?, ?)`,
-                        [id, item.name, item.qty || '1', item.price || '0.00']
-                    );
-                }
-            }
-        }
 
         // Award loyalty points
         awardPoints(customer, total);
@@ -178,21 +171,27 @@ app.post('/api/transactions', (req, res) => {
     }
 });
 
-// Get transactions for a specific customer (public)
+// Get slip image (admin only)
+app.get('/api/transactions/:id/image', requireAdmin, (req, res) => {
+    try {
+        const row = queryOne('SELECT slip_image FROM transactions WHERE id = ?', [req.params.id]);
+        if (!row || !row.slip_image) {
+            return res.status(404).json({ error: 'No image found' });
+        }
+        res.json({ image: row.slip_image });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch image' });
+    }
+});
+
+// Get transactions for a specific customer (public - no images)
 app.get('/api/transactions/customer/:name', (req, res) => {
     try {
         const customerName = req.params.name;
         const transactions = queryAll(
-            'SELECT * FROM transactions WHERE customer = ? ORDER BY created_at DESC',
+            'SELECT id, customer, store, branch, category, subtotal, tax, total, created_at FROM transactions WHERE customer = ? ORDER BY created_at DESC',
             [customerName]
         );
-
-        for (const t of transactions) {
-            t.items = queryAll(
-                'SELECT name, qty, price FROM transaction_items WHERE transaction_id = ?',
-                [t.id]
-            );
-        }
 
         const categoryCounts = queryAll(
             'SELECT category, COUNT(*) as count, SUM(CAST(total AS REAL)) as total_amount FROM transactions WHERE customer = ? GROUP BY category ORDER BY count DESC',
@@ -206,16 +205,14 @@ app.get('/api/transactions/customer/:name', (req, res) => {
     }
 });
 
-// Get all transactions (admin only)
+// Get all transactions (admin only - no images in list for performance)
 app.get('/api/transactions', requireAdmin, (req, res) => {
     try {
-        const transactions = queryAll('SELECT * FROM transactions ORDER BY created_at DESC');
-        for (const t of transactions) {
-            t.items = queryAll(
-                'SELECT name, qty, price FROM transaction_items WHERE transaction_id = ?',
-                [t.id]
-            );
-        }
+        const transactions = queryAll(
+            `SELECT id, customer, store, branch, category, subtotal, tax, total, created_at,
+             CASE WHEN slip_image != '' THEN 1 ELSE 0 END as has_image
+             FROM transactions ORDER BY created_at DESC`
+        );
         res.json(transactions);
     } catch (err) {
         console.error('Error fetching transactions:', err);
@@ -255,11 +252,6 @@ app.get('/api/stats', requireAdmin, (req, res) => {
             FROM transactions GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 30
         `);
 
-        const topItems = queryAll(`
-            SELECT name, SUM(CAST(qty AS INTEGER)) as total_qty, SUM(CAST(price AS REAL) * CAST(qty AS INTEGER)) as total_value
-            FROM transaction_items GROUP BY LOWER(name) ORDER BY total_qty DESC LIMIT 15
-        `);
-
         // Loyalty points data
         const pointsOverview = queryOne(`
             SELECT
@@ -289,7 +281,6 @@ app.get('/api/stats', requireAdmin, (req, res) => {
             byCategory,
             byCustomer,
             dailyTrends: dailyTrends.reverse(),
-            topItems,
             loyalty: {
                 overview: pointsOverview || { total_points_awarded: 0, total_scans: 0, enrolled_customers: 0, avg_points: 0 },
                 leaderboard: pointsLeaderboard,
@@ -321,8 +312,8 @@ app.delete('/api/transactions/:id', requireAdmin, (req, res) => {
 initDB().then(() => {
     app.listen(PORT, '0.0.0.0', () => {
         console.log('');
-        console.log('  SlipScan Server Running');
-        console.log('  -----------------------');
+        console.log('  SlipScan Server v3 Running');
+        console.log('  --------------------------');
         console.log('  Customer:  http://localhost:' + PORT);
         console.log('  Dashboard: http://localhost:' + PORT + '/dashboard');
         console.log('  Admin PIN: ' + ADMIN_PIN);

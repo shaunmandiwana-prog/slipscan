@@ -1,6 +1,6 @@
 /* ============================================================
-   SlipScan — Customer App Logic (v2 — Improved OCR & Scanning)
-   Multi-step form, image preprocessing, OCR, receipt parsing
+   SlipScan - Customer App v3
+   Photo capture + manual entry (no OCR)
    ============================================================ */
 
 (function () {
@@ -8,6 +8,7 @@
 
     let currentStep = 1;
     let capturedImage = null;
+    let capturedImageBase64 = null;
     let cameraStream = null;
     let selectedCategory = 'Groceries';
 
@@ -27,15 +28,6 @@
     const cameraPreview = $('#cameraPreview');
     const cameraVideo = $('#cameraVideo');
     const cameraCanvas = $('#cameraCanvas');
-    const ocrProgress = $('#ocrProgress');
-    const ocrProgressFill = $('#ocrProgressFill');
-    const ocrStatus = $('#ocrStatus');
-    const extractedData = $('#extractedData');
-    const rawText = $('#rawText');
-    const rawTextBox = $('#rawTextBox');
-    const itemsBody = $('#itemsBody');
-    const subtotalInput = $('#subtotalInput');
-    const taxInput = $('#taxInput');
     const totalInput = $('#totalInput');
 
     // ========================
@@ -99,6 +91,11 @@
             return true;
         }
         if (step === 3) return capturedImage !== null;
+        if (step === 4) {
+            const total = totalInput.value.trim();
+            if (!total || isNaN(parseFloat(total))) { shakeInput(totalInput); return false; }
+            return true;
+        }
         return true;
     }
 
@@ -133,13 +130,18 @@
     });
     $('#btnNext2').addEventListener('click', () => { if (validateStep(2)) goToStep(3); });
     $('#btnBack2').addEventListener('click', () => goToStep(1));
-    $('#btnNext3').addEventListener('click', () => { if (validateStep(3)) { goToStep(4); runOCR(); } });
+    $('#btnNext3').addEventListener('click', () => {
+        if (validateStep(3)) {
+            compressAndStore(capturedImage).then(() => goToStep(4));
+        }
+    });
     $('#btnBack3').addEventListener('click', () => goToStep(2));
-    $('#btnNext4').addEventListener('click', () => saveTransaction());
-    $('#btnBack4').addEventListener('click', () => { resetOCRState(); goToStep(3); });
+    $('#btnNext4').addEventListener('click', () => { if (validateStep(4)) saveTransaction(); });
+    $('#btnBack4').addEventListener('click', () => goToStep(3));
     $('#btnNewScan').addEventListener('click', () => { resetForm(); goToStep(1); });
     customerNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnNext1').click(); });
     storeNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnNext2').click(); });
+    totalInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnNext4').click(); });
 
     // ========================
     // File Upload
@@ -170,6 +172,7 @@
 
     $('#btnRemoveImage').addEventListener('click', () => {
         capturedImage = null;
+        capturedImageBase64 = null;
         imagePreview.style.display = 'none';
         uploadContent.style.display = '';
         previewImg.src = '';
@@ -179,11 +182,10 @@
     });
 
     // ========================
-    // Camera (improved for mobile)
+    // Camera
     // ========================
     $('#btnCamera').addEventListener('click', async (e) => {
         e.stopPropagation();
-        // On mobile, always use native camera picker (most reliable)
         if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             cameraInput.click(); return;
         }
@@ -213,307 +215,50 @@
     }
 
     // ========================
-    // IMAGE PREPROCESSING (key fix for OCR accuracy)
-    // Converts to grayscale, enhances contrast, applies adaptive threshold
+    // Image Compression (for storage)
     // ========================
-    function preprocessImage(imageSource) {
+    function compressAndStore(imageSource) {
         return new Promise((resolve) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-
                 let w = img.naturalWidth;
                 let h = img.naturalHeight;
 
-                // Scale up small images for better OCR accuracy
-                const MIN_WIDTH = 1200;
-                if (w < MIN_WIDTH) {
-                    const scale = MIN_WIDTH / w;
-                    w = Math.round(w * scale);
-                    h = Math.round(h * scale);
+                // Resize to max 1200px width for storage
+                const MAX_W = 1200;
+                if (w > MAX_W) {
+                    h = Math.round(h * (MAX_W / w));
+                    w = MAX_W;
                 }
-                // Cap to avoid memory issues
-                const MAX_DIM = 3000;
-                if (w > MAX_DIM || h > MAX_DIM) {
-                    const ds = MAX_DIM / Math.max(w, h);
-                    w = Math.round(w * ds);
-                    h = Math.round(h * ds);
-                }
-
                 canvas.width = w;
                 canvas.height = h;
                 ctx.drawImage(img, 0, 0, w, h);
 
-                const imageData = ctx.getImageData(0, 0, w, h);
-                const data = imageData.data;
-
-                // 1. Convert to grayscale
-                for (let i = 0; i < data.length; i += 4) {
-                    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                    data[i] = data[i + 1] = data[i + 2] = gray;
-                }
-
-                // 2. Compute Otsu's threshold for adaptive binarization
-                const histogram = new Array(256).fill(0);
-                for (let i = 0; i < data.length; i += 4) histogram[data[i]]++;
-                const totalPixels = w * h;
-                let sum = 0;
-                for (let i = 0; i < 256; i++) sum += i * histogram[i];
-                let sumB = 0, wB = 0, maxVar = 0, threshold = 128;
-                for (let i = 0; i < 256; i++) {
-                    wB += histogram[i];
-                    if (wB === 0) continue;
-                    const wF = totalPixels - wB;
-                    if (wF === 0) break;
-                    sumB += i * histogram[i];
-                    const diff = sumB / wB - (sum - sumB) / wF;
-                    const variance = wB * wF * diff * diff;
-                    if (variance > maxVar) { maxVar = variance; threshold = i; }
-                }
-
-                // 3. Stretch contrast + apply soft threshold
-                let minVal = 255, maxVal = 0;
-                for (let i = 0; i < data.length; i += 4) {
-                    if (data[i] < minVal) minVal = data[i];
-                    if (data[i] > maxVal) maxVal = data[i];
-                }
-                const range = maxVal - minVal || 1;
-                for (let i = 0; i < data.length; i += 4) {
-                    let val = ((data[i] - minVal) / range) * 255;
-                    val = val < threshold ? Math.max(0, val * 0.6) : Math.min(255, val * 1.15 + 40);
-                    data[i] = data[i + 1] = data[i + 2] = Math.round(val);
-                }
-
-                ctx.putImageData(imageData, 0, 0);
-                canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+                // Compress to JPEG quality 0.6 (~100-200KB)
+                capturedImageBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                resolve();
             };
-            img.onerror = () => resolve(null);
+            img.onerror = () => { capturedImageBase64 = ''; resolve(); };
             img.src = (typeof imageSource === 'string') ? imageSource : URL.createObjectURL(imageSource);
         });
     }
 
     // ========================
-    // OCR with Tesseract.js (improved settings)
-    // ========================
-    async function runOCR() {
-        ocrProgress.style.display = '';
-        extractedData.style.display = 'none';
-        $('#step4Actions').style.display = 'none';
-        ocrProgressFill.style.width = '0%';
-        ocrStatus.textContent = 'Preprocessing image...';
-        $('#step4Title').textContent = 'Scanning Receipt...';
-        $('#step4Desc').textContent = 'Enhancing image and extracting data';
-        const scanIcon = $('#scanIcon');
-        if (scanIcon) scanIcon.classList.add('scanning');
-
-        try {
-            ocrProgressFill.style.width = '5%';
-            ocrStatus.textContent = 'Enhancing image for better accuracy...';
-
-            const processedBlob = await preprocessImage(capturedImage);
-            const imageToScan = processedBlob || capturedImage;
-            const imageUrl = URL.createObjectURL(imageToScan);
-
-            ocrProgressFill.style.width = '10%';
-            ocrStatus.textContent = 'Loading OCR engine...';
-
-            const worker = await Tesseract.createWorker('eng', 1, {
-                logger: (m) => {
-                    if (m.status === 'recognizing text') {
-                        const pct = 10 + Math.round(m.progress * 85);
-                        ocrProgressFill.style.width = pct + '%';
-                        ocrStatus.textContent = 'Recognizing text... ' + Math.round(m.progress * 100) + '%';
-                    } else if (m.status === 'loading language traineddata') {
-                        ocrProgressFill.style.width = '15%';
-                        ocrStatus.textContent = 'Loading language data...';
-                    } else if (m.status === 'initializing api') {
-                        ocrProgressFill.style.width = '20%';
-                        ocrStatus.textContent = 'Initializing OCR engine...';
-                    }
-                }
-            });
-
-            // Receipt-optimized Tesseract settings
-            await worker.setParameters({
-                tessedit_pageseg_mode: '6',
-                preserve_interword_spaces: '1',
-            });
-
-            const { data } = await worker.recognize(imageUrl);
-            await worker.terminate();
-            URL.revokeObjectURL(imageUrl);
-
-            ocrProgressFill.style.width = '100%';
-            ocrStatus.textContent = 'Processing complete!';
-
-            setTimeout(() => {
-                ocrProgress.style.display = 'none';
-                extractedData.style.display = '';
-                $('#step4Actions').style.display = '';
-                $('#step4Title').textContent = 'Review Extracted Data';
-                $('#step4Desc').textContent = 'Edit any incorrectly scanned items below';
-                if (scanIcon) scanIcon.classList.remove('scanning');
-                rawText.textContent = data.text;
-                parseReceiptData(data.text);
-            }, 400);
-
-        } catch (err) {
-            console.error('OCR Error:', err);
-            ocrStatus.textContent = 'Error scanning receipt. Please try again.';
-            ocrProgressFill.style.width = '100%';
-            ocrProgressFill.style.background = 'var(--danger)';
-            $('#step4Actions').style.display = '';
-            if (scanIcon) scanIcon.classList.remove('scanning');
-        }
-    }
-
-    // ========================
-    // RECEIPT PARSER (rewritten for SA receipts)
-    // ========================
-    function parseReceiptData(text) {
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
-        const items = [];
-        let subtotal = '', tax = '', total = '';
-
-        const pricePatterns = [
-            /R?\s*(\d{1,6}[.,]\d{2})\s*$/,
-            /R\s*(\d{1,6}[.,]\d{2})/,
-            /(\d{1,6}[.,]\d{2})\s*[A-Z]?\s*$/,
-            /(\d{1,6}\.\d{2})/
-        ];
-
-        const totalLabels = /\b(total|totaal|amount\s*due|balance\s*due|nett?\s*total|grand\s*total|te\s*betaal)\b/i;
-        const subtotalLabels = /\b(sub\s*total|subtotal|sub-total|sub\s*tot)\b/i;
-        const taxLabels = /\b(vat|tax|btw|inclusive|incl\s*vat)\b/i;
-        const changeLabels = /\b(change|wisselgeld)\b/i;
-        const skipLine = /^(cash|card|visa|master\s*card|eft|debit|credit|rounding|tender|payment|receipt|invoice|tel|phone|fax|vat\s*no|vat\s*reg|reg\s*no|date|time|cashier|operator|thank|welcome|visit|address|branch|store|www\.|http|@|acc\s*no|ref|slip|trn|auth|approved|declined|saving|you\s*saved|loyalty|points|member|reward|discount\s*card|pos\s*id|terminal|merchant)/i;
-        const discountPattern = /\b(discount|korting|less|minus|saving|promo)\b/i;
-
-        for (let idx = 0; idx < lines.length; idx++) {
-            const line = lines[idx];
-            if (line.length < 3) continue;
-            if (/^[\-=_*#]{3,}$/.test(line)) continue;
-            if (/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}/.test(line)) continue;
-            if (/^\d{1,2}:\d{2}/.test(line)) continue;
-
-            if (skipLine.test(line) && !totalLabels.test(line) && !subtotalLabels.test(line) && !taxLabels.test(line)) {
-                continue;
-            }
-
-            let priceMatch = null, price = '';
-            for (const pattern of pricePatterns) {
-                priceMatch = line.match(pattern);
-                if (priceMatch) { price = priceMatch[1].replace(',', '.'); break; }
-            }
-            if (!price) continue;
-
-            if (totalLabels.test(line) && !subtotalLabels.test(line)) { total = price; continue; }
-            if (subtotalLabels.test(line)) { subtotal = price; continue; }
-            if (taxLabels.test(line)) { tax = price; continue; }
-            if (changeLabels.test(line)) continue;
-
-            let itemName = line;
-            if (priceMatch) {
-                const priceIdx = line.lastIndexOf(priceMatch[0]);
-                if (priceIdx > 0) itemName = line.substring(0, priceIdx);
-            }
-
-            itemName = itemName
-                .replace(/^[\d]+\s*[xX@]\s*/, '')
-                .replace(/R\s*$/, '')
-                .replace(/\s*R\s*\d+[.,]\d{2}/, '')
-                .replace(/^[\s\-\*\.,:;]+/, '')
-                .replace(/[\s\-\*\.,:;]+$/, '')
-                .replace(/\s{2,}/g, ' ')
-                .trim();
-
-            let qty = '1';
-            const qtyPatterns = [/^(\d{1,3})\s*[xX@]\s*/, /\s+[xX@]\s*(\d{1,3})\s*$/, /^(\d{1,3})\s+(?=[A-Z])/];
-            for (const qp of qtyPatterns) {
-                const qm = itemName.match(qp);
-                if (qm) {
-                    const q = parseInt(qm[1]);
-                    if (q > 0 && q < 100) { qty = qm[1]; itemName = itemName.replace(qm[0], '').trim(); }
-                    break;
-                }
-            }
-
-            if (itemName.length < 2) continue;
-            if (/^\d+$/.test(itemName)) continue;
-            if (discountPattern.test(itemName)) continue;
-
-            items.push({ name: itemName, qty, price });
-        }
-
-        renderItemsTable(items);
-        subtotalInput.value = subtotal;
-        taxInput.value = tax;
-        totalInput.value = total;
-
-        if (!total && items.length > 0) {
-            const calc = items.reduce((s, i) => s + (parseFloat(i.price) || 0) * (parseInt(i.qty) || 1), 0);
-            totalInput.value = calc.toFixed(2);
-        }
-    }
-
-    function renderItemsTable(items) {
-        itemsBody.innerHTML = '';
-        if (items.length === 0) addItemRow('', '1', '0.00');
-        else items.forEach(i => addItemRow(i.name, i.qty, i.price));
-    }
-
-    function addItemRow(name, qty, price) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td><input type="text" value="' + escapeHtml(name || '') + '" placeholder="Item name" class="item-name"></td>' +
-            '<td><input type="text" value="' + (qty || '1') + '" placeholder="1" class="item-qty"></td>' +
-            '<td><input type="text" value="' + (price || '0.00') + '" placeholder="0.00" class="item-price"></td>' +
-            '<td><button class="btn-row-delete" title="Remove"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></td>';
-        tr.querySelector('.btn-row-delete').addEventListener('click', () => { tr.remove(); recalcTotal(); });
-        tr.querySelector('.item-price').addEventListener('input', recalcTotal);
-        tr.querySelector('.item-qty').addEventListener('input', recalcTotal);
-        itemsBody.appendChild(tr);
-    }
-
-    function recalcTotal() {
-        let sum = 0;
-        itemsBody.querySelectorAll('tr').forEach(row => {
-            const p = parseFloat(row.querySelector('.item-price').value) || 0;
-            const q = parseInt(row.querySelector('.item-qty').value) || 1;
-            sum += p * q;
-        });
-        totalInput.value = sum.toFixed(2);
-    }
-
-    $('#btnAddItem').addEventListener('click', () => addItemRow());
-    $('#btnToggleRaw').addEventListener('click', () => {
-        const hidden = rawTextBox.style.display === 'none';
-        rawTextBox.style.display = hidden ? '' : 'none';
-    });
-
-    // ========================
-    // Save Transaction to Server
+    // Save Transaction
     // ========================
     async function saveTransaction() {
-        const items = [];
-        itemsBody.querySelectorAll('tr').forEach(row => {
-            const name = row.querySelector('.item-name').value.trim();
-            const qty = row.querySelector('.item-qty').value.trim();
-            const price = row.querySelector('.item-price').value.trim();
-            if (name) items.push({ name, qty, price });
-        });
-
         const transaction = {
             customer: customerNameInput.value.trim(),
             store: storeNameInput.value.trim(),
             branch: storeBranchInput.value.trim(),
             category: selectedCategory,
-            items: items,
-            subtotal: subtotalInput.value,
-            tax: taxInput.value,
-            total: totalInput.value,
-            rawText: rawText.textContent
+            total: totalInput.value.trim(),
+            subtotal: '',
+            tax: '',
+            slipImage: capturedImageBase64 || ''
         };
 
         const btn = $('#btnNext4');
@@ -535,7 +280,7 @@
             loadMySlips(transaction.customer);
         } catch (err) {
             console.error('Save error:', err);
-            alert('Failed to save transaction. Check the server is running.');
+            alert('Failed to save. Please check your connection and try again.');
         } finally {
             btn.innerHTML = origText;
             btn.disabled = false;
@@ -543,14 +288,13 @@
     }
 
     function renderSummary(t) {
-        const emojis = { 'Groceries': '🛒', 'Food & Dining': '🍽️', 'Outing': '🎭', 'Recreation': '⚽', 'Transport': '🚗', 'Health': '💊', 'Shopping': '🛍️', 'Bills & Utilities': '📄', 'Other': '📦' };
-        const itemsHtml = t.items.map(i => escapeHtml(i.name) + ' x' + i.qty + ' - R' + i.price).join('<br>');
+        const emojis = { 'Groceries': '\uD83D\uDED2', 'Food & Dining': '\uD83C\uDF7D\uFE0F', 'Outing': '\uD83C\uDFAD', 'Recreation': '\u26BD', 'Transport': '\uD83D\uDE97', 'Health': '\uD83D\uDC8A', 'Shopping': '\uD83D\uDECD\uFE0F', 'Bills & Utilities': '\uD83D\uDCC4', 'Other': '\uD83D\uDCE6' };
         $('#summaryCard').innerHTML =
             '<div class="summary-row"><span class="summary-label">Customer</span><span class="summary-value">' + escapeHtml(t.customer) + '</span></div>' +
             '<div class="summary-row"><span class="summary-label">Store</span><span class="summary-value">' + escapeHtml(t.store) + (t.branch ? ' - ' + escapeHtml(t.branch) : '') + '</span></div>' +
-            '<div class="summary-row"><span class="summary-label">Category</span><span class="summary-value">' + (emojis[t.category] || '📦') + ' ' + t.category + '</span></div>' +
-            '<div class="summary-row"><span class="summary-label">Items</span><span class="summary-value summary-items">' + (itemsHtml || 'None') + '</span></div>' +
-            '<div class="summary-row"><span class="summary-label">Total</span><span class="summary-value highlight">R ' + (t.total || '0.00') + '</span></div>';
+            '<div class="summary-row"><span class="summary-label">Category</span><span class="summary-value">' + (emojis[t.category] || '\uD83D\uDCE6') + ' ' + t.category + '</span></div>' +
+            '<div class="summary-row"><span class="summary-label">Total</span><span class="summary-value highlight">R ' + (t.total || '0.00') + '</span></div>' +
+            '<div class="summary-row"><span class="summary-label">Slip Photo</span><span class="summary-value">\u2705 Saved</span></div>';
     }
 
     // ========================
@@ -566,26 +310,28 @@
             if (data.totalSlips === 0) { section.style.display = 'none'; return; }
             section.style.display = '';
             $('#slipCountBadge').textContent = data.totalSlips;
-            const emojis = { 'Groceries': '🛒', 'Food & Dining': '🍽️', 'Outing': '🎭', 'Recreation': '⚽', 'Transport': '🚗', 'Health': '💊', 'Shopping': '🛍️', 'Bills & Utilities': '📄', 'Other': '📦' };
+            const emojis = { 'Groceries': '\uD83D\uDED2', 'Food & Dining': '\uD83C\uDF7D\uFE0F', 'Outing': '\uD83C\uDFAD', 'Recreation': '\u26BD', 'Transport': '\uD83D\uDE97', 'Health': '\uD83D\uDC8A', 'Shopping': '\uD83D\uDECD\uFE0F', 'Bills & Utilities': '\uD83D\uDCC4', 'Other': '\uD83D\uDCE6' };
 
             $('#categoryBreakdown').innerHTML = data.categoryCounts.map(function(c) {
-                return '<div class="cat-stat"><span class="cat-stat-emoji">' + (emojis[c.category] || '📦') + '</span><div class="cat-stat-info"><span class="cat-stat-name">' + c.category + '</span><span class="cat-stat-detail">' + c.count + ' slip' + (c.count !== 1 ? 's' : '') + ' - R ' + (c.total_amount || 0).toFixed(2) + '</span></div></div>';
+                return '<div class="cat-stat"><span class="cat-stat-emoji">' + (emojis[c.category] || '\uD83D\uDCE6') + '</span><div class="cat-stat-info"><span class="cat-stat-name">' + c.category + '</span><span class="cat-stat-detail">' + c.count + ' slip' + (c.count !== 1 ? 's' : '') + ' - R ' + (c.total_amount || 0).toFixed(2) + '</span></div></div>';
             }).join('');
 
             $('#mySlipsList').innerHTML = '<h3>Recent Slips</h3>' + data.transactions.slice(0, 10).map(function(t) {
-                return '<div class="slip-item"><div class="slip-item-left"><span class="slip-item-emoji">' + (emojis[t.category] || '📦') + '</span><div><div class="slip-item-store">' + escapeHtml(t.store) + '</div><div class="slip-item-date">' + formatDate(t.created_at) + '</div></div></div><div class="slip-item-total">R ' + t.total + '</div></div>';
+                return '<div class="slip-item"><div class="slip-item-left"><span class="slip-item-emoji">' + (emojis[t.category] || '\uD83D\uDCE6') + '</span><div><div class="slip-item-store">' + escapeHtml(t.store) + '</div><div class="slip-item-date">' + formatDate(t.created_at) + '</div></div></div><div class="slip-item-total">R ' + t.total + '</div></div>';
             }).join('');
         } catch (err) { console.error('Error loading slips:', err); }
     }
 
     // ========================
-    // Reset Helpers
+    // Reset
     // ========================
     function resetForm() {
         customerNameInput.value = '';
         storeNameInput.value = '';
         storeBranchInput.value = '';
+        totalInput.value = '';
         capturedImage = null;
+        capturedImageBase64 = null;
         imagePreview.style.display = 'none';
         uploadContent.style.display = '';
         previewImg.src = '';
@@ -597,21 +343,6 @@
         var gb = $('.category-btn[data-category="Groceries"]');
         if (gb) gb.classList.add('active');
         $('#mySlipsSection').style.display = 'none';
-        resetOCRState();
-    }
-
-    function resetOCRState() {
-        ocrProgress.style.display = '';
-        extractedData.style.display = 'none';
-        $('#step4Actions').style.display = 'none';
-        ocrProgressFill.style.width = '0%';
-        ocrProgressFill.style.background = '';
-        ocrStatus.textContent = 'Initializing OCR engine...';
-        rawTextBox.style.display = 'none';
-        itemsBody.innerHTML = '';
-        subtotalInput.value = '';
-        taxInput.value = '';
-        totalInput.value = '';
     }
 
     function escapeHtml(str) {

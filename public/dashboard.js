@@ -318,11 +318,17 @@
                 <td><span class="cat-badge">${t.category || 'Other'}</span></td>
                 <td>${t.items ? t.items.length : 0}</td>
                 <td class="total-cell">R ${t.total}</td>
-                <td><button class="btn-view" data-id="${t.id}">View</button></td>
+                <td>${t.has_image ? '<button class="btn-slip" data-id="' + t.id + '">Slip</button>' : ''}<button class="btn-view" data-id="${t.id}">View</button></td>
             </tr>
         `).join('');
 
         // Attach view handlers
+        body.querySelectorAll('.btn-slip').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                viewSlipImage(btn.dataset.id);
+            });
+        });
         body.querySelectorAll('.btn-view').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -459,6 +465,28 @@
     }
 
 
+    
+    // ========================
+    // View Slip Image
+    // ========================
+    async function viewSlipImage(txnId) {
+        try {
+            const res = await fetch('/api/transactions/' + txnId + '/image', {
+                headers: { 'X-Admin-Pin': adminPin }
+            });
+            if (!res.ok) { alert('No slip image found for this transaction.'); return; }
+            const data = await res.json();
+            if (!data.image) { alert('No slip image found.'); return; }
+
+            var mc = $('#modalContent');
+            mc.innerHTML = '<h3>Slip Photo</h3><div style="text-align:center;padding:1rem;"><img src="' + data.image + '" alt="Receipt" style="max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.3);"></div>';
+            $('#modalOverlay').style.display = '';
+        } catch (err) {
+            console.error('Error loading image:', err);
+            alert('Failed to load slip image.');
+        }
+    }
+
     // ========================
     // Utility
     // ========================
@@ -482,4 +510,6 @@
     }
 
 })();
+
+
 

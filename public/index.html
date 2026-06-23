@@ -3,102 +3,84 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SlipScan — Receipt Scanner & Data Extractor</title>
-    <meta name="description" content="Scan and upload transaction slips to automatically extract receipt data.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="SlipScan - Snap, save, and track your receipts effortlessly">
+    <title>SlipScan - Receipt Scanner</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <div class="bg-particles" id="bgParticles"></div>
-
     <div class="app-container">
+        <div class="bg-particles" id="bgParticles"></div>
+
         <!-- Header -->
         <header class="app-header">
             <div class="logo">
-                <div class="logo-icon">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                        <rect x="4" y="2" width="24" height="28" rx="3" stroke="currentColor" stroke-width="2" />
-                        <line x1="9" y1="10" x2="23" y2="10" stroke="currentColor" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <line x1="9" y1="14" x2="20" y2="14" stroke="currentColor" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <line x1="9" y1="18" x2="23" y2="18" stroke="currentColor" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <line x1="9" y1="22" x2="17" y2="22" stroke="currentColor" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <circle cx="24" cy="24" r="7" fill="var(--accent)" stroke="var(--bg-primary)"
-                            stroke-width="2" />
-                        <path d="M22 24L23.5 25.5L26.5 22.5" stroke="var(--bg-primary)" stroke-width="1.5"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                </div>
-                <h1>SlipScan</h1>
+                <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                    <rect x="8" y="4" width="32" height="40" rx="4" stroke="var(--accent)" stroke-width="2.5"
+                        fill="none" />
+                    <line x1="14" y1="14" x2="34" y2="14" stroke="var(--text-muted)" stroke-width="2"
+                        stroke-linecap="round" />
+                    <line x1="14" y1="22" x2="30" y2="22" stroke="var(--text-muted)" stroke-width="2"
+                        stroke-linecap="round" />
+                    <line x1="14" y1="30" x2="34" y2="30" stroke="var(--text-muted)" stroke-width="2"
+                        stroke-linecap="round" />
+                    <circle cx="37" cy="37" r="9" fill="var(--accent)" stroke="var(--bg-primary)" stroke-width="2.5" />
+                    <path d="M33 37h8M37 33v8" stroke="var(--bg-primary)" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <h1>Slip<span>Scan</span></h1>
             </div>
-            <p class="tagline">Scan • Extract • Organize</p>
         </header>
 
-        <!-- Progress bar -->
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-steps">
-                <div class="progress-step active" data-step="1">
-                    <div class="step-circle">1</div>
-                    <span class="step-label">Customer</span>
-                </div>
-                <div class="progress-line">
-                    <div class="progress-line-fill" id="line1"></div>
-                </div>
-                <div class="progress-step" data-step="2">
-                    <div class="step-circle">2</div>
-                    <span class="step-label">Store</span>
-                </div>
-                <div class="progress-line">
-                    <div class="progress-line-fill" id="line2"></div>
-                </div>
-                <div class="progress-step" data-step="3">
-                    <div class="step-circle">3</div>
-                    <span class="step-label">Upload</span>
-                </div>
-                <div class="progress-line">
-                    <div class="progress-line-fill" id="line3"></div>
-                </div>
-                <div class="progress-step" data-step="4">
-                    <div class="step-circle">4</div>
-                    <span class="step-label">Review</span>
-                </div>
-                <div class="progress-line">
-                    <div class="progress-line-fill" id="line4"></div>
-                </div>
-                <div class="progress-step" data-step="5">
-                    <div class="step-circle">5</div>
-                    <span class="step-label">Done</span>
-                </div>
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-step active" data-step="1">
+                <div class="step-circle">1</div>
+                <span class="step-text">You</span>
+            </div>
+            <div class="progress-line"><div class="progress-line-fill" id="line1"></div></div>
+            <div class="progress-step" data-step="2">
+                <div class="step-circle">2</div>
+                <span class="step-text">Store</span>
+            </div>
+            <div class="progress-line"><div class="progress-line-fill" id="line2"></div></div>
+            <div class="progress-step" data-step="3">
+                <div class="step-circle">3</div>
+                <span class="step-text">Photo</span>
+            </div>
+            <div class="progress-line"><div class="progress-line-fill" id="line3"></div></div>
+            <div class="progress-step" data-step="4">
+                <div class="step-circle">4</div>
+                <span class="step-text">Total</span>
+            </div>
+            <div class="progress-line"><div class="progress-line-fill" id="line4"></div></div>
+            <div class="progress-step" data-step="5">
+                <div class="step-circle">5</div>
+                <span class="step-text">Done</span>
             </div>
         </div>
 
-        <!-- Main Form Card -->
+        <!-- Form Card -->
         <main class="form-card glass-card">
-            <!-- Step 1: Customer Info -->
+
+            <!-- Step 1: Customer Name -->
             <section class="form-step active" id="step1">
                 <div class="step-header">
                     <div class="step-icon">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                            <circle cx="24" cy="16" r="8" stroke="currentColor" stroke-width="2.5" />
-                            <path d="M8 40c0-8.837 7.163-16 16-16s16 7.163 16 16" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" />
+                            <circle cx="24" cy="16" r="10" stroke="currentColor" stroke-width="2.5" />
+                            <path d="M6 44c0-10.5 8-18 18-18s18 7.5 18 18" stroke="currentColor" stroke-width="2.5"
+                                stroke-linecap="round" />
                         </svg>
                     </div>
-                    <h2>Customer Information</h2>
-                    <p class="step-desc">Enter the customer's name to get started</p>
+                    <h2>Who are you?</h2>
+                    <p class="step-desc">Enter your full name to get started</p>
                 </div>
                 <div class="form-group">
                     <label for="customerName">Full Name</label>
-                    <input type="text" id="customerName" placeholder="e.g. John Doe" autocomplete="off" required>
-                    <span class="input-hint">Who made this purchase?</span>
+                    <input type="text" id="customerName" placeholder="e.g. Thabo Mokoena" autocomplete="name">
                 </div>
                 <div class="form-actions">
                     <div></div>
@@ -112,93 +94,43 @@
                 </div>
             </section>
 
-            <!-- Step 2: Store & Category -->
+            <!-- Step 2: Store Info + Category -->
             <section class="form-step" id="step2">
                 <div class="step-header">
                     <div class="step-icon">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                            <path d="M6 20V40h36V20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
-                            <path d="M2 20l22-14 22 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                stroke-linejoin="round" />
-                            <rect x="18" y="28" width="12" height="12" rx="1" stroke="currentColor" stroke-width="2" />
+                            <path d="M4 20l4-14h32l4 14" stroke="currentColor" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <rect x="4" y="20" width="40" height="24" rx="2" stroke="currentColor"
+                                stroke-width="2.5" />
+                            <rect x="18" y="28" width="12" height="16" rx="1" stroke="currentColor"
+                                stroke-width="2" />
                         </svg>
                     </div>
-                    <h2>Store & Category</h2>
-                    <p class="step-desc">Where did the transaction take place?</p>
+                    <h2>Where did you shop?</h2>
+                    <p class="step-desc">Tell us about the store</p>
                 </div>
                 <div class="form-group">
                     <label for="storeName">Store Name</label>
-                    <input type="text" id="storeName" placeholder="e.g. Pick n Pay, Shoprite, Woolworths"
-                        autocomplete="off" list="storeList" required>
-                    <datalist id="storeList">
-                        <option value="Pick n Pay">
-                        <option value="Shoprite">
-                        <option value="Checkers">
-                        <option value="Woolworths">
-                        <option value="Spar">
-                        <option value="Game">
-                        <option value="Makro">
-                        <option value="Clicks">
-                        <option value="Dischem">
-                        <option value="Mr Price">
-                        <option value="Pep">
-                        <option value="Ackermans">
-                        <option value="Takealot">
-                        <option value="Builders Warehouse">
-                        <option value="Engen">
-                        <option value="Shell">
-                        <option value="Sasol">
-                        <option value="KFC">
-                        <option value="McDonald's">
-                        <option value="Steers">
-                        <option value="Nando's">
-                    </datalist>
-                    <span class="input-hint">Select from the list or type a custom store name</span>
-                </div>
-                <div class="form-group">
-                    <label for="storeBranch">Branch / Location <span class="optional">(optional)</span></label>
-                    <input type="text" id="storeBranch" placeholder="e.g. Sandton City, Mall of Africa"
+                    <input type="text" id="storeName" placeholder="e.g. Shoprite, Pick n Pay, Woolworths"
                         autocomplete="off">
                 </div>
                 <div class="form-group">
-                    <label for="category">Spending Category</label>
-                    <div class="category-grid" id="categoryGrid">
-                        <button type="button" class="category-btn active" data-category="Groceries">
-                            <span class="cat-emoji">🛒</span>
-                            <span class="cat-label">Groceries</span>
-                        </button>
-                        <button type="button" class="category-btn" data-category="Food & Dining">
-                            <span class="cat-emoji">🍽️</span>
-                            <span class="cat-label">Food & Dining</span>
-                        </button>
-                        <button type="button" class="category-btn" data-category="Outing">
-                            <span class="cat-emoji">🎭</span>
-                            <span class="cat-label">Outing</span>
-                        </button>
-                        <button type="button" class="category-btn" data-category="Recreation">
-                            <span class="cat-emoji">⚽</span>
-                            <span class="cat-label">Recreation</span>
-                        </button>
-                        <button type="button" class="category-btn" data-category="Transport">
-                            <span class="cat-emoji">🚗</span>
-                            <span class="cat-label">Transport</span>
-                        </button>
-                        <button type="button" class="category-btn" data-category="Health">
-                            <span class="cat-emoji">💊</span>
-                            <span class="cat-label">Health</span>
-                        </button>
-                        <button type="button" class="category-btn" data-category="Shopping">
-                            <span class="cat-emoji">🛍️</span>
-                            <span class="cat-label">Shopping</span>
-                        </button>
-                        <button type="button" class="category-btn" data-category="Bills & Utilities">
-                            <span class="cat-emoji">📄</span>
-                            <span class="cat-label">Bills</span>
-                        </button>
-                        <button type="button" class="category-btn" data-category="Other">
-                            <span class="cat-emoji">📦</span>
-                            <span class="cat-label">Other</span>
-                        </button>
+                    <label for="storeBranch">Branch <span class="optional">(optional)</span></label>
+                    <input type="text" id="storeBranch" placeholder="e.g. Mall of Africa, Sandton" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <div class="category-grid">
+                        <button class="category-btn active" data-category="Groceries">&#x1F6D2; Groceries</button>
+                        <button class="category-btn" data-category="Food & Dining">&#x1F37D;&#xFE0F; Food & Dining</button>
+                        <button class="category-btn" data-category="Outing">&#x1F3AD; Outing</button>
+                        <button class="category-btn" data-category="Recreation">&#x26BD; Recreation</button>
+                        <button class="category-btn" data-category="Transport">&#x1F697; Transport</button>
+                        <button class="category-btn" data-category="Health">&#x1F48A; Health</button>
+                        <button class="category-btn" data-category="Shopping">&#x1F6CD;&#xFE0F; Shopping</button>
+                        <button class="category-btn" data-category="Bills & Utilities">&#x1F4C4; Bills</button>
+                        <button class="category-btn" data-category="Other">&#x1F4E6; Other</button>
                     </div>
                 </div>
                 <div class="form-actions">
@@ -219,84 +151,71 @@
                 </div>
             </section>
 
-            <!-- Step 3: Upload / Scan -->
+            <!-- Step 3: Capture / Upload -->
             <section class="form-step" id="step3">
                 <div class="step-header">
                     <div class="step-icon">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                            <rect x="6" y="10" width="36" height="28" rx="4" stroke="currentColor" stroke-width="2.5" />
-                            <circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="2" />
+                            <rect x="4" y="10" width="40" height="28" rx="4" stroke="currentColor"
+                                stroke-width="2.5" />
+                            <circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="2.5" />
                             <circle cx="24" cy="24" r="3" fill="currentColor" />
                             <circle cx="36" cy="16" r="2" fill="currentColor" />
                         </svg>
                     </div>
-                    <h2>Upload Receipt</h2>
-                    <p class="step-desc">Take a photo or upload an image of the slip</p>
+                    <h2>Take a Photo of Your Slip</h2>
+                    <p class="step-desc">Snap a clear photo — we'll store it safely</p>
                 </div>
 
                 <div class="upload-area" id="uploadArea">
                     <div class="upload-content" id="uploadContent">
-                        <div class="upload-icon-wrapper">
-                            <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                                <path d="M28 36V12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
-                                <path d="M20 20l8-8 8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                                <path d="M8 36v8a4 4 0 004 4h32a4 4 0 004-4v-8" stroke="currentColor" stroke-width="2.5"
-                                    stroke-linecap="round" />
-                            </svg>
-                        </div>
-                        <p class="upload-text">Drag & drop your receipt here</p>
-                        <p class="upload-subtext">or</p>
-                        <div class="upload-buttons">
-                            <button class="btn btn-outline" id="btnBrowse">
-                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                    <path d="M3 13l4-5 3 3.5 2-2.5 3 4" stroke="currentColor" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                    <rect x="1" y="1" width="16" height="16" rx="2" stroke="currentColor"
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <path d="M24 32V16M16 24l8-8 8 8" stroke="currentColor" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M40 32v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-8" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" />
+                        </svg>
+                        <p>Tap to upload or drag & drop</p>
+                        <div class="upload-btns">
+                            <button class="btn btn-sm btn-primary" id="btnCamera">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <rect x="1" y="4" width="14" height="10" rx="2" stroke="currentColor"
                                         stroke-width="1.5" />
-                                </svg>
-                                Browse Files
-                            </button>
-                            <button class="btn btn-outline" id="btnCamera">
-                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                    <rect x="1" y="4" width="16" height="12" rx="2" stroke="currentColor"
-                                        stroke-width="1.5" />
-                                    <circle cx="9" cy="10" r="3" stroke="currentColor" stroke-width="1.5" />
-                                    <path d="M6 4l1-2h4l1 2" stroke="currentColor" stroke-width="1.5"
-                                        stroke-linecap="round" />
+                                    <circle cx="8" cy="9" r="3" stroke="currentColor" stroke-width="1.5" />
                                 </svg>
                                 Take Photo
                             </button>
+                            <button class="btn btn-sm btn-ghost" id="btnBrowse">Browse Files</button>
                         </div>
-                        <p class="upload-formats">Supports: JPG, PNG, WEBP, HEIC</p>
                     </div>
-                    <input type="file" id="fileInput" accept="image/*" hidden>
-                    <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
-                </div>
 
-                <!-- Camera preview -->
-                <div class="camera-preview" id="cameraPreview" style="display:none;">
-                    <video id="cameraVideo" autoplay playsinline></video>
-                    <div class="camera-controls">
-                        <button class="btn btn-ghost" id="btnCancelCamera">Cancel</button>
-                        <button class="btn btn-capture" id="btnCapture">
-                            <div class="capture-ring"></div>
+                    <div class="image-preview" id="imagePreview" style="display:none;">
+                        <img id="previewImg" alt="Receipt preview">
+                        <button class="btn-remove-image" id="btnRemoveImage" title="Remove image">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
                         </button>
-                        <div></div>
                     </div>
-                    <canvas id="cameraCanvas" style="display:none;"></canvas>
+
+                    <div class="camera-preview" id="cameraPreview" style="display:none;">
+                        <video id="cameraVideo" autoplay playsinline></video>
+                        <canvas id="cameraCanvas" style="display:none;"></canvas>
+                        <div class="camera-controls">
+                            <button class="btn btn-sm btn-ghost" id="btnCancelCamera">Cancel</button>
+                            <button class="btn btn-sm btn-primary btn-capture" id="btnCapture">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                    <circle cx="12" cy="12" r="6" fill="currentColor" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Image preview -->
-                <div class="image-preview" id="imagePreview" style="display:none;">
-                    <img id="previewImg" alt="Receipt preview">
-                    <button class="btn-remove" id="btnRemoveImage" title="Remove image">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" />
-                        </svg>
-                    </button>
-                </div>
+                <input type="file" id="fileInput" accept="image/*" style="display:none;">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
 
                 <div class="form-actions">
                     <button class="btn btn-ghost" id="btnBack3">
@@ -307,7 +226,7 @@
                         Back
                     </button>
                     <button class="btn btn-primary" id="btnNext3" disabled>
-                        Scan Receipt
+                        Next
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                             <path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" />
@@ -316,95 +235,40 @@
                 </div>
             </section>
 
-            <!-- Step 4: OCR Results -->
+            <!-- Step 4: Enter Total (simplified - no OCR) -->
             <section class="form-step" id="step4">
                 <div class="step-header">
-                    <div class="step-icon scanning" id="scanIcon">
+                    <div class="step-icon">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                            <path d="M6 14V8a2 2 0 012-2h6" stroke="currentColor" stroke-width="2.5"
-                                stroke-linecap="round" />
-                            <path d="M34 6h6a2 2 0 012 2v6" stroke="currentColor" stroke-width="2.5"
-                                stroke-linecap="round" />
-                            <path d="M42 34v6a2 2 0 01-2 2h-6" stroke="currentColor" stroke-width="2.5"
-                                stroke-linecap="round" />
-                            <path d="M14 42H8a2 2 0 01-2-2v-6" stroke="currentColor" stroke-width="2.5"
-                                stroke-linecap="round" />
-                            <line x1="6" y1="24" x2="42" y2="24" stroke="var(--accent)" stroke-width="2"
-                                stroke-dasharray="4 3" />
+                            <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2.5" />
+                            <text x="24" y="30" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">R</text>
                         </svg>
                     </div>
-                    <h2 id="step4Title">Scanning Receipt...</h2>
-                    <p class="step-desc" id="step4Desc">Extracting data from your slip</p>
+                    <h2>Enter the Total</h2>
+                    <p class="step-desc">Type the total amount from your slip</p>
                 </div>
 
-                <div class="ocr-progress" id="ocrProgress">
-                    <div class="ocr-progress-bar">
-                        <div class="ocr-progress-fill" id="ocrProgressFill"></div>
+                <div class="total-entry-section">
+                    <div class="form-group total-group">
+                        <label for="totalInput">Total Amount (R)</label>
+                        <div class="total-input-wrap">
+                            <span class="total-prefix">R</span>
+                            <input type="number" id="totalInput" placeholder="0.00" step="0.01" min="0" inputmode="decimal" class="total-input-large">
+                        </div>
                     </div>
-                    <p class="ocr-status" id="ocrStatus">Initializing OCR engine...</p>
+                    <p class="total-hint">&#x1F4A1; Check the bottom of your slip for the total</p>
                 </div>
 
-                <div class="extracted-data" id="extractedData" style="display:none;">
-                    <div class="raw-text-toggle">
-                        <button class="btn btn-sm btn-ghost" id="btnToggleRaw">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" stroke-width="1.5"
-                                    stroke-linecap="round" />
-                            </svg>
-                            Show Raw Text
-                        </button>
-                    </div>
-                    <div class="raw-text-box" id="rawTextBox" style="display:none;">
-                        <pre id="rawText"></pre>
-                    </div>
-
-                    <div class="data-table-container">
-                        <table class="data-table" id="itemsTable">
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="itemsBody"></tbody>
-                        </table>
-                        <button class="btn btn-sm btn-ghost" id="btnAddItem">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" />
-                            </svg>
-                            Add Item
-                        </button>
-                    </div>
-
-                    <div class="totals-section">
-                        <div class="total-row">
-                            <span>Subtotal</span>
-                            <input type="text" id="subtotalInput" class="total-input" placeholder="0.00">
-                        </div>
-                        <div class="total-row">
-                            <span>Tax / VAT</span>
-                            <input type="text" id="taxInput" class="total-input" placeholder="0.00">
-                        </div>
-                        <div class="total-row total-grand">
-                            <span>Total</span>
-                            <input type="text" id="totalInput" class="total-input" placeholder="0.00">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-actions" id="step4Actions" style="display:none;">
+                <div class="form-actions">
                     <button class="btn btn-ghost" id="btnBack4">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                             <path d="M13 4l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" />
                         </svg>
-                        Re-scan
+                        Back
                     </button>
                     <button class="btn btn-primary" id="btnNext4">
-                        Confirm & Save
+                        Save
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                             <path d="M5 10l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" />
@@ -424,7 +288,7 @@
                         </svg>
                     </div>
                     <h2>Transaction Saved!</h2>
-                    <p class="step-desc">The receipt has been processed and stored successfully</p>
+                    <p class="step-desc">Your receipt has been stored successfully</p>
                 </div>
 
                 <div class="summary-card glass-card-inner" id="summaryCard"></div>
@@ -440,38 +304,29 @@
             </section>
         </main>
 
-        <!-- My Slips (Customer's own data) -->
+        <!-- My Slips -->
         <section class="my-slips-section glass-card" id="mySlipsSection" style="display:none;">
             <div class="my-slips-header">
                 <h2>
                     <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                         <rect x="3" y="1" width="16" height="20" rx="2" stroke="currentColor" stroke-width="1.8" />
-                        <line x1="7" y1="7" x2="15" y2="7" stroke="currentColor" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <line x1="7" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <line x1="7" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="1.5"
-                            stroke-linecap="round" />
+                        <line x1="7" y1="7" x2="15" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        <line x1="7" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        <line x1="7" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                     </svg>
                     My Slips
                 </h2>
                 <span class="slip-count-badge" id="slipCountBadge">0</span>
             </div>
-
-            <!-- Category breakdown -->
             <div class="category-breakdown" id="categoryBreakdown"></div>
-
-            <!-- Recent slips list -->
             <div class="my-slips-list" id="mySlipsList"></div>
         </section>
 
         <footer class="app-footer">
-            <p>SlipScan &copy; 2026 — Powered by <a href="https://github.com/naptha/tesseract.js" target="_blank"
-                    rel="noopener">Tesseract.js</a></p>
+            <p>SlipScan &copy; 2026</p>
         </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="app.js"></script>
 </body>
 

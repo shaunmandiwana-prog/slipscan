@@ -752,3 +752,7 @@ body {
 .lb-tier-badge.gold { background: rgba(251,191,36,0.15); color: #fbbf24; }
 .lb-tier-badge.silver { background: rgba(148,163,184,0.15); color: #94a3b8; }
 .lb-tier-badge.bronze { background: rgba(205,127,50,0.15); color: #cd7f32; }
+
+/* Slip image button */
+.btn-slip { background: rgba(251,191,36,0.15); color: #fbbf24; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; margin-right: 4px; transition: background 0.2s; }
+.btn-slip:hover { background: rgba(251,191,36,0.3); }
